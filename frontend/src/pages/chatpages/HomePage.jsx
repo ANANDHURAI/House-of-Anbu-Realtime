@@ -6,8 +6,7 @@ import ProfileDetails from "../../components/chat/Sidebar/ProfileDetails";
 import SidebarHeader from "../../components/chat/Sidebar/SidebarHeader";
 import MainPanel from "../../components/chat/Sidebar/MainPanel";
 import LoadingSpinner from "../../components/chat/layout/LoadingSpinner";
-
-// import SearchUser from "../../components/chat/layout/SearchUser";
+import Search from "../../components/register/Search";
 
 
 function HomePage() {
@@ -55,14 +54,12 @@ function HomePage() {
 
   return (
     <div className="flex flex-col md:flex-row h-screen bg-gray-100">
-      {/* Sidebar */}
       
       <aside className="w-full md:w-1/3 bg-white border-r shadow-sm flex flex-col">
+      <Search/>
         <SidebarHeader user={user} onLogout={handleLogout} />
-        <ProfileDetails user={user} />
       </aside>
 
-      {/* Main Panel */}
       <main className="flex-1 flex flex-col">
         <MainPanel user={user} />
       </main>
