@@ -1,10 +1,26 @@
 from django.urls import path
-from .views import RegisterAPIView,VerifyOTPAPIView
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from .views import (
+    RegisterAPIView, 
+    VerifyOTPAPIView, 
+    LoginRequestAPIView,
+    LoginVerifyOTPAPIView,
+    UserProfileAPIView
+)
+from rest_framework_simplejwt.views import TokenRefreshView, TokenObtainPairView
+
 
 urlpatterns = [
+    # Registration
     path('register/', RegisterAPIView.as_view(), name='register'),
     path('verify-otp/', VerifyOTPAPIView.as_view(), name='verify-otp'),
-    path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    
+    # Login
+    path('login/', LoginRequestAPIView.as_view(), name='login-request'),
+    path('login/verify-otp/', LoginVerifyOTPAPIView.as_view(), name='login-verify'),
+    
+    # Token refresh
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    
+    # Protected routes
+    path('profile/', UserProfileAPIView.as_view(), name='user-profile'),
 ]

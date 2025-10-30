@@ -2,7 +2,8 @@
 import os
 from pathlib import Path
 from datetime import timedelta
-
+from dotenv import load_dotenv
+load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -144,3 +145,4 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 
+AUTH_USER_MODEL = 'accounts.UserAccount'
