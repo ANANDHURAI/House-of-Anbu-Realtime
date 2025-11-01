@@ -67,7 +67,7 @@ function RegisterPage() {
         localStorage.setItem("refresh", res.data.refresh);
         localStorage.setItem("user", JSON.stringify(res.data.user));
 
-        alert("✅ Account created successfully!");
+        alert("Account created successfully!");
         window.location.href = "/home";
       }
     } catch {

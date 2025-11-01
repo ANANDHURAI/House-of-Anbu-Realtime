@@ -51,11 +51,12 @@ function LoginPage() {
       });
 
       if (res.status === 200) {
+
         localStorage.setItem("access", res.data.access);
         localStorage.setItem("refresh", res.data.refresh);
         localStorage.setItem("user", JSON.stringify(res.data.user));
 
-        alert("✅ Login successful!");
+        alert("Login successful!");
         window.location.href = "/home";
       }
     } catch (error) {

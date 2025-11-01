@@ -52,6 +52,11 @@ AxiosInstance.interceptors.response.use(
         const newAccessToken = refreshResponse.data.access;
         localStorage.setItem("access", newAccessToken);
 
+ 
+        if (refreshResponse.data.refresh) {
+          localStorage.setItem("refresh", refreshResponse.data.refresh);
+        }
+
         // retry original request with new token
         const originalRequest = error.config;
         originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
