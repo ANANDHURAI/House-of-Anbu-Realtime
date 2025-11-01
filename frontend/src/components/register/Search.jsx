@@ -1,10 +1,10 @@
 // components/register/Search.jsx
 import React, { useState } from "react";
 import AxiosInstance from "../../api/AxiosInterCepters";
-import { useNavigate } from "react-router-dom";
+
 
 function Search({ onSelectChat }) {
-  const navigate = useNavigate();
+
   const [query, setQuery] = useState("");
   const [searchingData, setSearchingData] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -45,7 +45,8 @@ function Search({ onSelectChat }) {
       setSearchingData([]);
       setIsOpen(false);
       
-      navigate(`/chat/${chatId}`);
+      // Call onSelectChat with chatId and userName as separate parameters
+      onSelectChat(chatId, userName);
     } catch (error) {
       console.error("Failed to start chat:", error);
     }

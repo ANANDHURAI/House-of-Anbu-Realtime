@@ -3,8 +3,9 @@ import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import AxiosInstance from "../../api/AxiosInterCepters";
 
-function ChatRoomPage() {
-  const { chatId } = useParams(); // Get chatId from URL params
+function ChatRoomPage({ chatId, chatName, currentUser }) {
+
+  // const { chatId } = useParams(); // Get chatId from URL params
   const navigate = useNavigate();
   const [socket, setSocket] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -13,10 +14,9 @@ function ChatRoomPage() {
   const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef(null);
 
-  const currentUser = JSON.parse(localStorage.getItem("user"));
+  // const currentUser = JSON.parse(localStorage.getItem("user"));
   const currentUserId = currentUser?.id;
   const currentUserName = currentUser?.name;
-
   // Scroll to bottom when messages update
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -24,11 +24,6 @@ function ChatRoomPage() {
 
   // Fetch messages + open WebSocket
   useEffect(() => {
-    if (!chatId) {
-      console.error("Chat ID is undefined");
-      return;
-    }
-
     const fetchMessages = async () => {
       try {
         const res = await AxiosInstance.get(`/chat/${chatId}/messages/`);
@@ -63,9 +58,6 @@ function ChatRoomPage() {
     setInput("");
   };
 
-  const handleBack = () => {
-    navigate("/home");
-  };
 
   if (loading) {
     return (
@@ -80,31 +72,13 @@ function ChatRoomPage() {
       {/* Header */}
       <div className="bg-white shadow-md border-b border-gray-200">
         <div className="flex items-center gap-3 p-4">
-          <button
-            onClick={handleBack}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors duration-200"
-          >
-            <svg
-              className="w-6 h-6 text-gray-700"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
-          </button>
           <div className="flex items-center gap-3 flex-1">
             <div className="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-white font-semibold">
               {otherUser?.name?.[0]?.toUpperCase() || "U"}
             </div>
             <div>
               <h2 className="font-semibold text-gray-800">
-                {otherUser?.name || "Chat"}
+                {chatName || otherUser?.name || "Chat"}
               </h2>
               <p className="text-xs text-green-500">● Online</p>
             </div>

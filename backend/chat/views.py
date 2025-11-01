@@ -5,7 +5,7 @@ from rest_framework import status
 from django.db.models import Q
 from .models import Chat, Message
 from accounts.models import UserAccount
-from .serializers import MessageSerializer
+from .serializers import MessageSerializer , ChatSerializer
 
 
 class SearchingView(APIView):
@@ -64,6 +64,14 @@ class ChatMessagesView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+class ChatListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        chats = Chat.objects.filter(Q(user1=user) | Q(user2=user)).order_by('-updated_at')
+        serializer = ChatSerializer(chats, many=True, context={'request': request})
+        return Response(serializer.data)
 
 
     
