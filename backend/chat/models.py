@@ -24,6 +24,23 @@ class Message(models.Model):
     file = models.FileField(upload_to='chat_files/', blank=True, null=True)
     is_read = models.BooleanField(default=False)
     timestamp = models.DateTimeField(auto_now_add=True)
+    message_type = models.CharField(
+        max_length=20,
+        default='text',
+        choices=[
+            ('text', 'Text'),
+            ('call', 'Call'),
+            ('call_missed', 'Missed Call'),
+        ]
+    )
+    # ✅ Use string reference to avoid circular import
+    call = models.ForeignKey(
+        'videocall.Call',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='messages'
+    )
 
     def __str__(self):
         return f"{self.sender.name}: {self.content[:30] if self.content else 'Media message'}"

@@ -63,15 +63,19 @@ function ChatRoomPage({ chatId, chatName, currentUser, otherUser }) {
   const startVideoCall = async () => {
     try {
       const res = await AxiosInstance.post("/videocall/start/", {
-        receiver_id: otherUser.id, // or receiver ID from context
+        receiver_id: otherUser.id,
       });
-      const { room_name } = res.data;
-      navigate(`/videocall/${room_name}#init`); // caller joins as initiator
+      const { room_name, call_id } = res.data;
+      
+      // Store call_id for later use
+      sessionStorage.setItem('current_call_id', call_id);
+      
+      navigate(`/videocall/${room_name}#init`);
     } catch (error) {
       console.error("Error starting call:", error);
+      alert("Failed to start video call. Please try again.");
     }
   };
-
 
   if (loading) {
     return (
@@ -81,7 +85,7 @@ function ChatRoomPage({ chatId, chatName, currentUser, otherUser }) {
     );
   }
 
-  return (
+return (
     <div className="flex flex-col h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
       {/* Header */}
       <div className="bg-white shadow-md border-b border-gray-200">
@@ -134,6 +138,25 @@ function ChatRoomPage({ chatId, chatName, currentUser, otherUser }) {
         ) : (
           messages.map((msg, idx) => {
             const isCurrentUser = msg.sender === currentUserName || msg.sender_name === currentUserName;
+            
+            // Call message display
+            if (msg.message_type === 'call' || msg.message_type === 'call_missed') {
+              const isMissed = msg.message_type === 'call_missed';
+              return (
+                <div key={idx} className="flex justify-center my-3">
+                  <div className={`px-4 py-2 rounded-xl text-sm flex items-center gap-2 ${
+                    isMissed ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-green-50 text-green-600 border border-green-200'
+                  }`}>
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                    </svg>
+                    <span className="font-medium">{msg.content}</span>
+                  </div>
+                </div>
+              );
+            }
+            
+            // Regular text message
             return (
               <div
                 key={idx}

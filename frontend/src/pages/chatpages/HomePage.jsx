@@ -1,11 +1,11 @@
 // pages/chat/HomePage.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect , useRef } from "react";
 import AxiosInstance from "../../api/AxiosInterCepters";
 import { useNavigate } from "react-router-dom";
 import Search from "../../components/register/Search";
 import ChatRoom from "./ChatRoomPage";
 import ChatList from "../../components/chat/Sidebar/ChatList";
-
+import IncomingCallModal from "../video/IncomingCallModal";
 
 function HomePage() {
   const [user, setUser] = useState(null);
@@ -14,6 +14,8 @@ function HomePage() {
   const [activeChatUser, setActiveChatUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const [incomingCall, setIncomingCall] = useState(null);
+  const callNotificationSocket = useRef(null);
 
   useEffect(() => {
     fetchUserProfile();
@@ -30,6 +32,42 @@ function HomePage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!user) return;
+
+    // Connect to call notification WebSocket
+    const token = localStorage.getItem("access");
+    const ws = new WebSocket(`ws://127.0.0.1:8000/ws/call-notifications/?token=${token}`);
+    callNotificationSocket.current = ws;
+
+    ws.onopen = () => {
+      console.log("📞 Connected to call notifications");
+    };
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      console.log("📞 Incoming call:", data);
+      
+      if (data.type === 'incoming_call') {
+        setIncomingCall(data);
+      } else if (data.type === 'call_ended') {
+        setIncomingCall(null);
+      }
+    };
+
+    ws.onclose = () => {
+      console.log("📞 Disconnected from call notifications");
+    };
+
+    ws.onerror = (error) => {
+      console.error("📞 Call notification error:", error);
+    };
+
+    return () => {
+      ws?.close();
+    };
+  }, [user]);
 
   const handleLogout = () => {
     localStorage.removeItem("access");
@@ -124,6 +162,15 @@ return (
               strokeWidth={2}
               d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
             />
+          </svg>
+        </button>
+        <button
+          onClick={() => navigate('/call-history')}
+          className="p-2 hover:bg-green-700 rounded-full transition-colors"
+          title="Call History"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </button>
       </div>
@@ -222,6 +269,12 @@ return (
         </div>
       )}
     </div>
+    {incomingCall && (
+        <IncomingCallModal
+          callData={incomingCall}
+          onReject={() => setIncomingCall(null)}
+        />
+      )}
   </div>
 );
 

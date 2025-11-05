@@ -2,11 +2,13 @@
 import React, { useEffect, useRef, useState } from "react";
 import Peer from "simple-peer";
 import { useParams, useNavigate } from "react-router-dom";
+import AxiosInstance from "../../api/AxiosInterCepters";
 
 function VideoCallPage() {
   const { room_name } = useParams();
   const navigate = useNavigate();
-
+  const [callId, setCallId] = useState(null);
+  const callStartTimeRef = useRef(null);
   const socketRef = useRef(null);
   const peerRef = useRef(null);
   const localVideoRef = useRef(null);
@@ -32,67 +34,121 @@ function VideoCallPage() {
   }, [connected]);
 
   useEffect(() => {
-    const token = localStorage.getItem("access");
-    const ws = new WebSocket(
-      `ws://127.0.0.1:8000/ws/videocall/${room_name}/?token=${token}`
-    );
-    socketRef.current = ws;
+    // Get call_id from sessionStorage
+    const storedCallId = sessionStorage.getItem('current_call_id');
+    if (storedCallId) {
+      setCallId(storedCallId);
+    }
+  }, []);
 
-    ws.onopen = () => {
-      console.log("✅ WebSocket connected to video room");
-    };
-    
-    ws.onmessage = (event) => handleSignal(JSON.parse(event.data));
-    
-    ws.onclose = () => {
-      console.log("❌ Video WebSocket closed");
-      setIsConnecting(false);
-    };
+  useEffect(() => {
+    if (connected && !callStartTimeRef.current) {
+      callStartTimeRef.current = new Date();
+    }
+  }, [connected]);
 
-    ws.onerror = (error) => {
-      console.error("WebSocket error:", error);
-      setIsConnecting(false);
-    };
+  useEffect(() => {
+      const token = localStorage.getItem("access");
+      const ws = new WebSocket(
+        `ws://127.0.0.1:8000/ws/videocall/${room_name}/?token=${token}`
+      );
+      socketRef.current = ws;
 
-    initMedia();
+      let wsReady = false;
 
-    return () => {
-      cleanupCall();
-    };
-  }, [room_name]);
+      ws.onopen = () => {
+        console.log("✅ WebSocket connected to video room");
+        wsReady = true;
+      };
+      
+      ws.onmessage = (event) => handleSignal(JSON.parse(event.data));
+      
+      ws.onclose = () => {
+        console.log("❌ Video WebSocket closed");
+        setIsConnecting(false);
+      };
 
-  const initMedia = async () => {
-    try {
-      // Check if getUserMedia is supported
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('Your browser does not support camera access');
-      }
+      ws.onerror = (error) => {
+        console.error("WebSocket error:", error);
+        setIsConnecting(false);
+      };
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        },
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-        },
-      });
+      // Wait for WebSocket to be ready, then init media
+      const isInitiator = window.location.hash === "#init";
+      const initDelay = isInitiator ? 500 : 1500; // Initiator: 500ms, Receiver: 1500ms
+      
+      const timer = setTimeout(() => {
+        if (wsReady || isInitiator) {
+          console.log(`🎥 Starting media initialization (${isInitiator ? 'Initiator' : 'Receiver'})`);
+          initMedia();
+        } else {
+          console.log('⏳ Waiting for WebSocket...');
+          setTimeout(() => initMedia(), 1000);
+        }
+      }, initDelay);
 
-      localStreamRef.current = stream;
+      return () => {
+        clearTimeout(timer);
+        // Cleanup when component unmounts
+        if (localStreamRef.current) {
+          localStreamRef.current.getTracks().forEach(track => {
+            track.stop();
+            console.log('🛑 Stopped track:', track.kind);
+          });
+        }
+        if (peerRef.current) {
+          peerRef.current.destroy();
+        }
+        if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+          socketRef.current.close();
+        }
+      };
+    }, [room_name]);
 
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = stream;
-      }
+  const initMedia = async (retryCount = 0) => {
+      const maxRetries = 3;
+      
+      try {
+        // Check if getUserMedia is supported
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error('Your browser does not support camera access');
+        }
 
-      // Wait a bit for polyfills to be ready
-      await new Promise(resolve => setTimeout(resolve, 100));
+        // Stop any existing streams first
+        if (localStreamRef.current) {
+          localStreamRef.current.getTracks().forEach(track => track.stop());
+          localStreamRef.current = null;
+        }
 
-      // Check if Peer is available
-      if (!Peer || typeof Peer !== 'function') {
-        console.error('Peer constructor not available');
-        throw new Error('SimplePeer library not loaded properly. Please refresh the page.');
-      }
+        console.log(`Attempting to access camera (attempt ${retryCount + 1}/${maxRetries + 1})...`);
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+        });
+
+        console.log('✅ Camera access granted');
+        localStreamRef.current = stream;
+
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = stream;
+        }
+
+        // Wait a bit for polyfills to be ready
+        await new Promise(resolve => setTimeout(resolve, 200));
+
+        // Check if Peer is available
+        if (!Peer || typeof Peer !== 'function') {
+          console.error('Peer constructor not available');
+          throw new Error('SimplePeer library not loaded properly. Please refresh the page.');
+        }
 
       const peerConfig = {
         initiator: window.location.hash === "#init",
@@ -106,20 +162,20 @@ function VideoCallPage() {
         }
       };
 
-      console.log('Creating peer with config:', peerConfig);
+      console.log('Creating peer - Initiator:', peerConfig.initiator);
       const p = new Peer(peerConfig);
 
       peerRef.current = p;
 
       p.on("signal", (signal) => {
-        console.log('Sending signal:', signal.type);
+        console.log('📤 Sending signal:', signal.type);
         socketRef.current?.send(
           JSON.stringify({ type: "signal", signal })
         );
       });
 
       p.on("stream", (remoteStream) => {
-        console.log('Received remote stream');
+        console.log('📥 Received remote stream');
         if (remoteVideoRef.current) {
           remoteVideoRef.current.srcObject = remoteStream;
         }
@@ -128,27 +184,66 @@ function VideoCallPage() {
       });
 
       p.on("error", (err) => {
-        console.error("Peer connection error:", err);
-        setIsConnecting(false);
+        console.error("❌ Peer connection error:", err);
+        // Don't show error for stable state issues (they're expected)
+        if (!err.message.includes('stable')) {
+          setIsConnecting(false);
+        }
+      });
+
+      p.on("connect", () => {
+        console.log("✅ Peer connection established");
       });
 
       p.on("close", () => {
-        console.log("Peer connection closed");
+        console.log("👋 Peer connection closed");
         setConnected(false);
       });
 
-      console.log('Peer initialized successfully');
+      console.log('✅ Peer initialized successfully');
 
-    } catch (err) {
-      console.error("Camera error:", err);
-      alert("Error: " + err.message + "\n\nPlease:\n1. Allow camera and microphone access\n2. Refresh the page\n3. Try in Chrome/Firefox");
-      navigate("/home");
-    }
-  };
+      } catch (err) {
+        console.error("Camera error:", err);
+        
+        // Retry logic for "Device in use" errors
+        if (err.name === 'NotReadableError' && retryCount < maxRetries) {
+          console.log(`⏳ Retrying in ${(retryCount + 1) * 1000}ms...`);
+          setTimeout(() => {
+            initMedia(retryCount + 1);
+          }, (retryCount + 1) * 1000); // Exponential backoff: 1s, 2s, 3s
+          return;
+        }
+        
+        // More user-friendly error messages
+        let errorMessage = "Unable to access camera/microphone.\n\n";
+        
+        if (err.name === 'NotAllowedError') {
+          errorMessage += "Please allow camera and microphone access in your browser settings.";
+        } else if (err.name === 'NotFoundError') {
+          errorMessage += "No camera or microphone found on your device.";
+        } else if (err.name === 'NotReadableError') {
+          errorMessage += "Camera is already in use by another application.\n\nPlease:\n1. Close other tabs/apps using the camera\n2. Refresh this page\n3. Try again";
+        } else {
+          errorMessage += err.message;
+        }
+        
+        alert(errorMessage);
+        navigate("/home");
+      }
+    };
 
   const handleSignal = (data) => {
     if (data.type === "signal" && data.signal && peerRef.current) {
-      peerRef.current.signal(data.signal);
+      try {
+        console.log('Received signal:', data.signal.type);
+        peerRef.current.signal(data.signal);
+      } catch (error) {
+        console.error('Error handling signal:', error);
+        // Ignore signaling errors in stable state
+        if (!error.message.includes('stable')) {
+          console.error('Signal processing failed:', error);
+        }
+      }
     }
   };
 
@@ -183,16 +278,43 @@ function VideoCallPage() {
     }
   };
 
-  const cleanupCall = () => {
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(track => track.stop());
-    }
-    peerRef.current?.destroy();
-    socketRef.current?.close();
-  };
-
-  const endCall = () => {
-    cleanupCall();
+  const cleanupCall = async () => {
+      console.log('Cleaning up call...');
+      
+      // Stop local media tracks
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(track => {
+          track.stop();
+          console.log('Stopped track:', track.kind);
+        });
+        localStreamRef.current = null;
+      }
+      
+      // Destroy peer connection
+      if (peerRef.current) {
+        peerRef.current.destroy();
+        peerRef.current = null;
+      }
+      
+      // Update call status to ended
+      if (callId) {
+        try {
+          await AxiosInstance.post(`/videocall/call/${callId}/update/`, {
+            status: 'ended'
+          });
+          sessionStorage.removeItem('current_call_id');
+        } catch (error) {
+          console.error('Error updating call status:', error);
+        }
+      }
+      
+      // Close WebSocket (but don't do it in useEffect cleanup to avoid race)
+      if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+        socketRef.current.close();
+      }
+    };
+  const endCall = async () => {
+    await cleanupCall();
     navigate("/home");
   };
 
@@ -232,9 +354,14 @@ function VideoCallPage() {
                 <div className="absolute inset-0 w-24 h-24 border-4 border-purple-500 border-b-transparent rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
               </div>
               <p className="mt-6 text-white text-xl font-medium animate-pulse">
-                {isConnecting ? "Connecting to call..." : "Waiting for other user..."}
+                {isConnecting ? "Initializing camera..." : "Waiting for other user..."}
               </p>
               <p className="mt-2 text-gray-400 text-sm">Room: {room_name}</p>
+              {!connected && (
+                <p className="mt-4 text-gray-500 text-xs">
+                  If stuck, make sure camera is not in use by other apps
+                </p>
+              )}
             </div>
           )}
 

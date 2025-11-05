@@ -4,6 +4,7 @@ import RegisterPage from "./pages/auth/RegisterPage";
 import HomePage from "./pages/chatpages/HomePage";
 import Login from "./pages/auth/LoginPage";
 import VideoCallPage from "./pages/video/VideoCallPage";
+import CallHistoryPage from "./pages/video/CallHistoryPage";
 
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
         <Route path="/register" element={<RegisterPage />} />  
         <Route path="/home" element={<HomePage />} />
         <Route path="/videocall/:room_name" element={<VideoCallPage />} />
+        <Route path="/call-history" element={<CallHistoryPage />} />
       </Routes>
     </Router>
   );

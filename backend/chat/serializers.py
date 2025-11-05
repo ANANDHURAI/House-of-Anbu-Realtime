@@ -43,3 +43,5 @@ class ChatSerializer(serializers.ModelSerializer):
     def get_last_timestamp(self, obj):
         last_msg = obj.messages.order_by('-timestamp').first()
         return last_msg.timestamp if last_msg else None
+
+

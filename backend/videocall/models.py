@@ -17,6 +17,17 @@ class Call(models.Model):
     room_name = models.CharField(max_length=100, unique=True)
     started_at = models.DateTimeField(auto_now_add=True)
     ended_at = models.DateTimeField(blank=True, null=True)
+    duration = models.IntegerField(default=0, help_text="Call duration in seconds")
+    is_missed = models.BooleanField(default=False)
+
+    # ✅ Use string reference to Chat (no import)
+    chat = models.ForeignKey(
+        'chat.Chat',
+        on_delete=models.CASCADE,
+        related_name='calls',
+        null=True,
+        blank=True
+    )
 
     def __str__(self):
         return f"{self.caller.name} → {self.receiver.name} ({self.status})"

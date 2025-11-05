@@ -1,5 +1,7 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
+from channels.db import database_sync_to_async
+from .models import Call
 
 class VideoCallConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -10,6 +12,37 @@ class VideoCallConsumer(AsyncWebsocketConsumer):
         # Join the group
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
+
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                "type": "send_sdp",
+                "message": {
+                    "type": "user_joined",
+                    "user": self.user.name
+                },
+                "sender": self.user.name,
+            }
+        )
+
+        
+        call = await self.get_call_info(self.room_name)
+        if call and call.receiver.id != self.user.id:
+            receiver_group = f'call_notifications_{call.receiver.id}'
+            await self.channel_layer.group_send(
+                receiver_group,
+                {
+                    'type': 'call_notification',
+                    'data': {
+                        'type': 'incoming_call',
+                        'call_id': call.id,
+                        'caller_id': call.caller.id,
+                        'caller_name': call.caller.name,
+                        'caller_image': call.caller.profile_image.url if call.caller.profile_image else None,
+                        'room_name': self.room_name,
+                    }
+                }
+            )
 
         await self.send(text_data=json.dumps({
             "type": "connection",
@@ -36,3 +69,10 @@ class VideoCallConsumer(AsyncWebsocketConsumer):
 
     async def send_sdp(self, event):
         await self.send(text_data=json.dumps(event["message"]))
+
+    @database_sync_to_async
+    def get_call_info(self, room_name):
+        try:
+            return Call.objects.select_related('caller', 'receiver').get(room_name=room_name)
+        except Call.DoesNotExist:
+            return None
