@@ -1,4 +1,4 @@
-// pages/chat/HomePage.jsx
+
 import React, { useState, useEffect , useRef } from "react";
 import AxiosInstance from "../../api/AxiosInterCepters";
 import { useNavigate } from "react-router-dom";
@@ -42,12 +42,12 @@ function HomePage() {
     callNotificationSocket.current = ws;
 
     ws.onopen = () => {
-      console.log("📞 Connected to call notifications");
+      console.log("Connected to call notifications");
     };
 
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      console.log("📞 Incoming call:", data);
+      console.log("Incoming call:", data);
       
       if (data.type === 'incoming_call') {
         setIncomingCall(data);
@@ -57,11 +57,11 @@ function HomePage() {
     };
 
     ws.onclose = () => {
-      console.log("📞 Disconnected from call notifications");
+      console.log(" Disconnected from call notifications");
     };
 
     ws.onerror = (error) => {
-      console.error("📞 Call notification error:", error);
+      console.error("Call notification error:", error);
     };
 
     return () => {
@@ -87,7 +87,7 @@ function HomePage() {
       // From Search
       setActiveChat(chatOrId);
       setActiveChatName(chatName);
-      setActiveChatUser(null); // or fetch separately if needed
+      setActiveChatUser(null);
     }
   };
 
@@ -120,13 +120,13 @@ function HomePage() {
 
 return (
   <div className="flex h-screen bg-gray-100">
-    {/* Sidebar - WhatsApp Style - Always visible on desktop */}
+   
     <div
       className={`${
         activeChat ? "hidden md:flex" : "flex"
       } md:flex flex-col w-full md:w-96 bg-white border-r shadow-lg`}
     >
-      {/* Sidebar Header */}
+     
       <div className="bg-green-600 text-white p-4 flex items-center justify-between shadow-md">
         <div className="flex items-center gap-3">
           {user.profile_image ? (
@@ -175,16 +175,14 @@ return (
         </button>
       </div>
 
-      {/* Search Component */}
+     
       <Search onSelectChat={handleSelectChat} />
 
-      {/* ✅ Chat List replaces Empty State */}
       <div className="flex-1 overflow-y-auto bg-white">
         <ChatList onSelectChat={handleSelectChat} />
       </div>
     </div>
 
-    {/* Chat Area */}
     <div
       className={`${
         activeChat ? "flex" : "hidden md:flex"
@@ -192,7 +190,7 @@ return (
     >
       {activeChat ? (
         <>
-          {/* Mobile Back Button */}
+        
           <div className="md:hidden bg-white border-b px-4 py-3 shadow-sm">
             <button
               onClick={() => setActiveChat(null)}
@@ -214,7 +212,6 @@ return (
               <span>Back</span>
             </button>
           </div>
-          {/* Chat Room Component */}
           
           <ChatRoom
             chatId={activeChat}
@@ -224,7 +221,7 @@ return (
           />
         </>
       ) : (
-        /* Desktop Empty State */
+      
         <div className="hidden md:flex flex-col items-center justify-center h-full bg-gradient-to-br from-green-50 to-emerald-50">
           <div className="text-center p-8 max-w-md">
             <div className="w-32 h-32 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">

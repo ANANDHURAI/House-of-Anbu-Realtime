@@ -1,13 +1,11 @@
-// pages/chat/ChatRoomPage.jsx
+
 import React, { useEffect, useState, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import AxiosInstance from "../../api/AxiosInterCepters";
 
 
 function ChatRoomPage({ chatId, chatName, currentUser, otherUser }) {
 
-
-  // const { chatId } = useParams(); // Get chatId from URL params
   const navigate = useNavigate();
   const [socket, setSocket] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -15,7 +13,6 @@ function ChatRoomPage({ chatId, chatName, currentUser, otherUser }) {
   const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef(null);
 
-  // const currentUser = JSON.parse(localStorage.getItem("user"));
   const currentUserId = currentUser?.id;
   const currentUserName = currentUser?.name;
   // Scroll to bottom when messages update
@@ -23,7 +20,7 @@ function ChatRoomPage({ chatId, chatName, currentUser, otherUser }) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Fetch messages + open WebSocket
+  
   useEffect(() => {
     const fetchMessages = async () => {
       try {
@@ -67,7 +64,7 @@ function ChatRoomPage({ chatId, chatName, currentUser, otherUser }) {
       });
       const { room_name, call_id } = res.data;
       
-      // Store call_id for later use
+     
       sessionStorage.setItem('current_call_id', call_id);
       
       navigate(`/videocall/${room_name}#init`);
@@ -87,7 +84,7 @@ function ChatRoomPage({ chatId, chatName, currentUser, otherUser }) {
 
 return (
     <div className="flex flex-col h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
-      {/* Header */}
+      
       <div className="bg-white shadow-md border-b border-gray-200">
         <div className="flex items-center justify-between gap-3 p-4">
           <div className="flex items-center gap-3 flex-1">
@@ -116,7 +113,7 @@ return (
       </div>
 
 
-      {/* Messages */}
+   
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-400">
@@ -139,7 +136,7 @@ return (
           messages.map((msg, idx) => {
             const isCurrentUser = msg.sender === currentUserName || msg.sender_name === currentUserName;
             
-            // Call message display
+        
             if (msg.message_type === 'call' || msg.message_type === 'call_missed') {
               const isMissed = msg.message_type === 'call_missed';
               return (
@@ -156,7 +153,7 @@ return (
               );
             }
             
-            // Regular text message
+           
             return (
               <div
                 key={idx}
@@ -184,7 +181,7 @@ return (
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
+   
       <div className="bg-white border-t border-gray-200 p-4 shadow-lg">
         <div className="flex items-center gap-2 max-w-4xl mx-auto">
           <input

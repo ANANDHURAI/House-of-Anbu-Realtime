@@ -1,4 +1,4 @@
-// pages/video/VideoCallPage.jsx
+
 import React, { useEffect, useRef, useState } from "react";
 import Peer from "simple-peer";
 import { useParams, useNavigate } from "react-router-dom";
@@ -22,7 +22,6 @@ function VideoCallPage() {
   const [callDuration, setCallDuration] = useState(0);
   const [isConnecting, setIsConnecting] = useState(true);
 
-  // Timer for call duration
   useEffect(() => {
     let interval;
     if (connected) {
@@ -34,7 +33,6 @@ function VideoCallPage() {
   }, [connected]);
 
   useEffect(() => {
-    // Get call_id from sessionStorage
     const storedCallId = sessionStorage.getItem('current_call_id');
     if (storedCallId) {
       setCallId(storedCallId);
@@ -57,14 +55,14 @@ function VideoCallPage() {
       let wsReady = false;
 
       ws.onopen = () => {
-        console.log("✅ WebSocket connected to video room");
+        console.log("WebSocket connected to video room");
         wsReady = true;
       };
       
       ws.onmessage = (event) => handleSignal(JSON.parse(event.data));
       
       ws.onclose = () => {
-        console.log("❌ Video WebSocket closed");
+        console.log("Video WebSocket closed");
         setIsConnecting(false);
       };
 
@@ -73,9 +71,9 @@ function VideoCallPage() {
         setIsConnecting(false);
       };
 
-      // Wait for WebSocket to be ready, then init media
+     
       const isInitiator = window.location.hash === "#init";
-      const initDelay = isInitiator ? 500 : 1500; // Initiator: 500ms, Receiver: 1500ms
+      const initDelay = isInitiator ? 500 : 1500;
       
       const timer = setTimeout(() => {
         if (wsReady || isInitiator) {
@@ -89,11 +87,11 @@ function VideoCallPage() {
 
       return () => {
         clearTimeout(timer);
-        // Cleanup when component unmounts
+       
         if (localStreamRef.current) {
           localStreamRef.current.getTracks().forEach(track => {
             track.stop();
-            console.log('🛑 Stopped track:', track.kind);
+            console.log('Stopped track:', track.kind);
           });
         }
         if (peerRef.current) {
@@ -109,12 +107,11 @@ function VideoCallPage() {
       const maxRetries = 3;
       
       try {
-        // Check if getUserMedia is supported
+    
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
           throw new Error('Your browser does not support camera access');
         }
 
-        // Stop any existing streams first
         if (localStreamRef.current) {
           localStreamRef.current.getTracks().forEach(track => track.stop());
           localStreamRef.current = null;
@@ -134,17 +131,16 @@ function VideoCallPage() {
           },
         });
 
-        console.log('✅ Camera access granted');
+        console.log('Camera access granted');
         localStreamRef.current = stream;
 
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream;
         }
-
-        // Wait a bit for polyfills to be ready
+      
         await new Promise(resolve => setTimeout(resolve, 200));
 
-        // Check if Peer is available
+      
         if (!Peer || typeof Peer !== 'function') {
           console.error('Peer constructor not available');
           throw new Error('SimplePeer library not loaded properly. Please refresh the page.');
@@ -168,14 +164,14 @@ function VideoCallPage() {
       peerRef.current = p;
 
       p.on("signal", (signal) => {
-        console.log('📤 Sending signal:', signal.type);
+        console.log('Sending signal:', signal.type);
         socketRef.current?.send(
           JSON.stringify({ type: "signal", signal })
         );
       });
 
       p.on("stream", (remoteStream) => {
-        console.log('📥 Received remote stream');
+        console.log('Received remote stream');
         if (remoteVideoRef.current) {
           remoteVideoRef.current.srcObject = remoteStream;
         }
@@ -184,37 +180,34 @@ function VideoCallPage() {
       });
 
       p.on("error", (err) => {
-        console.error("❌ Peer connection error:", err);
-        // Don't show error for stable state issues (they're expected)
+        console.error("Peer connection error:", err);
         if (!err.message.includes('stable')) {
           setIsConnecting(false);
         }
       });
 
       p.on("connect", () => {
-        console.log("✅ Peer connection established");
+        console.log("Peer connection established");
       });
 
       p.on("close", () => {
-        console.log("👋 Peer connection closed");
+        console.log("Peer connection closed");
         setConnected(false);
       });
 
-      console.log('✅ Peer initialized successfully');
+      console.log('Peer initialized successfully');
 
       } catch (err) {
         console.error("Camera error:", err);
-        
-        // Retry logic for "Device in use" errors
+       
         if (err.name === 'NotReadableError' && retryCount < maxRetries) {
           console.log(`⏳ Retrying in ${(retryCount + 1) * 1000}ms...`);
           setTimeout(() => {
             initMedia(retryCount + 1);
-          }, (retryCount + 1) * 1000); // Exponential backoff: 1s, 2s, 3s
+          }, (retryCount + 1) * 1000);
           return;
         }
         
-        // More user-friendly error messages
         let errorMessage = "Unable to access camera/microphone.\n\n";
         
         if (err.name === 'NotAllowedError') {
@@ -239,7 +232,6 @@ function VideoCallPage() {
         peerRef.current.signal(data.signal);
       } catch (error) {
         console.error('Error handling signal:', error);
-        // Ignore signaling errors in stable state
         if (!error.message.includes('stable')) {
           console.error('Signal processing failed:', error);
         }
@@ -281,7 +273,6 @@ function VideoCallPage() {
   const cleanupCall = async () => {
       console.log('Cleaning up call...');
       
-      // Stop local media tracks
       if (localStreamRef.current) {
         localStreamRef.current.getTracks().forEach(track => {
           track.stop();
@@ -290,13 +281,11 @@ function VideoCallPage() {
         localStreamRef.current = null;
       }
       
-      // Destroy peer connection
       if (peerRef.current) {
         peerRef.current.destroy();
         peerRef.current = null;
       }
       
-      // Update call status to ended
       if (callId) {
         try {
           await AxiosInstance.post(`/videocall/call/${callId}/update/`, {
@@ -308,7 +297,6 @@ function VideoCallPage() {
         }
       }
       
-      // Close WebSocket (but don't do it in useEffect cleanup to avoid race)
       if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
         socketRef.current.close();
       }
@@ -326,7 +314,7 @@ function VideoCallPage() {
 
   return (
     <div className="relative h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-gray-800 overflow-hidden">
-      {/* Background Pattern */}
+    
       <div className="absolute inset-0 opacity-10">
         <div className="absolute inset-0" style={{
           backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)',
@@ -334,10 +322,8 @@ function VideoCallPage() {
         }}></div>
       </div>
 
-      {/* Main Video Container */}
+  
       <div id="video-container" className="relative h-full flex items-center justify-center p-4">
-        
-        {/* Remote Video (Main) */}
         <div className="relative w-full h-full max-w-7xl rounded-2xl overflow-hidden shadow-2xl bg-black">
           <video
             ref={remoteVideoRef}
@@ -346,7 +332,7 @@ function VideoCallPage() {
             className="w-full h-full object-cover"
           />
           
-          {/* Connecting Overlay */}
+         
           {!connected && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 bg-opacity-90">
               <div className="relative">
@@ -365,7 +351,7 @@ function VideoCallPage() {
             </div>
           )}
 
-          {/* Local Video (Picture-in-Picture) */}
+       
           <div className="absolute top-4 right-4 w-48 h-36 rounded-xl overflow-hidden shadow-2xl border-2 border-white/20 bg-black transition-all hover:scale-105">
             <video
               ref={localVideoRef}
@@ -388,7 +374,6 @@ function VideoCallPage() {
             </div>
           </div>
 
-          {/* Call Duration */}
           {connected && (
             <div className="absolute top-4 left-4 px-4 py-2 bg-black/50 backdrop-blur-md rounded-full text-white flex items-center gap-2">
               <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
@@ -396,7 +381,6 @@ function VideoCallPage() {
             </div>
           )}
 
-          {/* Connection Status */}
           <div className="absolute top-4 left-1/2 transform -translate-x-1/2 px-4 py-2 bg-black/50 backdrop-blur-md rounded-full">
             <div className="flex items-center gap-2">
               <div className={`w-2 h-2 rounded-full ${connected ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
@@ -407,10 +391,10 @@ function VideoCallPage() {
           </div>
         </div>
 
-        {/* Control Panel */}
+      
         <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex items-center gap-4 px-6 py-4 bg-white/10 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20">
           
-          {/* Mute Button */}
+       
           <button
             onClick={toggleMute}
             className={`group relative p-4 rounded-xl transition-all duration-200 ${
@@ -432,7 +416,7 @@ function VideoCallPage() {
             )}
           </button>
 
-          {/* Video Toggle Button */}
+       
           <button
             onClick={toggleVideo}
             className={`group relative p-4 rounded-xl transition-all duration-200 ${
@@ -454,7 +438,7 @@ function VideoCallPage() {
             )}
           </button>
 
-          {/* End Call Button */}
+       
           <button
             onClick={endCall}
             className="group relative p-5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg"
@@ -465,7 +449,7 @@ function VideoCallPage() {
             </svg>
           </button>
 
-          {/* Fullscreen Button */}
+        
           <button
             onClick={toggleFullscreen}
             className="group relative p-4 bg-white/10 hover:bg-white/20 rounded-xl transition-all duration-200"

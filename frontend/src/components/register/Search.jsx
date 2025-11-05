@@ -1,4 +1,4 @@
-// components/register/Search.jsx
+
 import React, { useState } from "react";
 import AxiosInstance from "../../api/AxiosInterCepters";
 
@@ -45,7 +45,6 @@ function Search({ onSelectChat }) {
       setSearchingData([]);
       setIsOpen(false);
       
-      // Call onSelectChat with chatId and userName as separate parameters
       onSelectChat(chatId, userName);
     } catch (error) {
       console.error("Failed to start chat:", error);

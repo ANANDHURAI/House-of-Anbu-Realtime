@@ -77,7 +77,7 @@ function CallHistoryPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
-      {/* Header */}
+     
       <div className="bg-white shadow-md border-b">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center gap-4">
           <button
@@ -92,7 +92,7 @@ function CallHistoryPage() {
         </div>
       </div>
 
-      {/* Call List */}
+      
       <div className="max-w-4xl mx-auto p-4">
         {callHistory.length === 0 ? (
           <div className="text-center py-12">
@@ -113,7 +113,7 @@ function CallHistoryPage() {
                   key={call.id}
                   className="flex items-center gap-4 p-4 hover:bg-gray-50 border-b last:border-b-0 transition"
                 >
-                  {/* User Avatar */}
+                
                   {otherUser.image ? (
                     <img
                       src={otherUser.image}
@@ -126,7 +126,7 @@ function CallHistoryPage() {
                     </div>
                   )}
 
-                  {/* Call Info */}
+                  
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       {getCallIcon(call)}
@@ -139,12 +139,12 @@ function CallHistoryPage() {
                     </p>
                   </div>
 
-                  {/* Date/Time */}
+                
                   <div className="text-right">
                     <p className="text-sm text-gray-500">{formatDate(call.started_at)}</p>
                   </div>
 
-                  {/* Call Again Button */}
+                 
                   <button
                     className="p-2 hover:bg-indigo-100 rounded-full transition text-indigo-600"
                     title="Call again"

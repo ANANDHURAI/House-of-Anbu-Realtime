@@ -7,12 +7,10 @@ function IncomingCallModal({ callData, onReject }) {
   const [isRinging, setIsRinging] = useState(true);
 
   useEffect(() => {
-    // Play ringtone (optional) - only try, don't break if it fails
     const audio = new Audio('/ringtone.mp3');
     audio.loop = true;
     audio.volume = 0.5;
     
-    // Try to play, but don't worry if it fails
     const playPromise = audio.play();
     if (playPromise !== undefined) {
       playPromise.catch(e => {
@@ -33,10 +31,8 @@ function IncomingCallModal({ callData, onReject }) {
         status: 'accepted'
       });
       
-      // Store call_id for the video call page
       sessionStorage.setItem('current_call_id', callData.call_id);
       
-      // Navigate without hash since we're joining, not initiating
       navigate(`/videocall/${callData.room_name}`);
     } catch (error) {
       console.error('Error accepting call:', error);
@@ -74,7 +70,7 @@ return (
                 {callData.caller_name?.[0]?.toUpperCase()}
               </div>
             )}
-            {/* Pulsing ring animation */}
+          
             <div className="absolute inset-0 rounded-full border-4 border-white animate-ping opacity-75"></div>
             <div 
               className="absolute inset-0 w-24 h-24 border-4 border-white rounded-full animate-spin opacity-75"
@@ -93,9 +89,9 @@ return (
           </p>
         </div>
 
-        {/* Action Buttons */}
+      
         <div className="flex gap-4 justify-center">
-          {/* Reject Button */}
+          
           <button
             onClick={handleReject}
             className="group relative p-6 bg-red-500 hover:bg-red-600 rounded-full transition-all duration-200 transform hover:scale-110 shadow-lg"
@@ -108,7 +104,7 @@ return (
             </span>
           </button>
 
-          {/* Accept Button */}
+         
           <button
             onClick={handleAccept}
             className="group relative p-6 bg-green-500 hover:bg-green-600 rounded-full transition-all duration-200 transform hover:scale-110 shadow-lg animate-pulse"

@@ -27,7 +27,6 @@ function ChatRoom({ chatId, chatName, currentUser }) {
     
     fetchMessages();
 
-    // WebSocket connection
     const ws = new WebSocket(`ws://127.0.0.1:8000/ws/chat/${chatId}/`);
     
     ws.onopen = () => {
@@ -93,7 +92,6 @@ function ChatRoom({ chatId, chatName, currentUser }) {
         </div>
       </div>
 
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-400">

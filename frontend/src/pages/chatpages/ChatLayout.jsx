@@ -87,10 +87,9 @@ function ChatLayout() {
           </button>
         </div>
 
-        {/* Search */}
+      
         <Search onSelectChat={handleSelectChat} />
 
-        {/* Chats List */}
         <div className="flex-1 overflow-y-auto">
           {!activeChat && (
             <div className="flex flex-col items-center justify-center h-full p-6 text-center">
@@ -106,11 +105,11 @@ function ChatLayout() {
         </div>
       </div>
 
-      {/* Chat Area */}
+    
       <div className={`${activeChat ? 'flex' : 'hidden md:flex'} flex-1 flex flex-col`}>
         {activeChat ? (
           <>
-            {/* Back button for mobile */}
+          
             <div className="md:hidden bg-white border-b px-4 py-2">
               <button
                 onClick={() => setActiveChat(null)}
