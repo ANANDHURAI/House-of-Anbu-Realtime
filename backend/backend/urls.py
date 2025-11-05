@@ -7,6 +7,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('auth/', include('accounts.urls')),
     path('chat/', include('chat.urls')),
+    path('videocall/', include('videocall.urls')),
+
 ]
 
 if settings.DEBUG:

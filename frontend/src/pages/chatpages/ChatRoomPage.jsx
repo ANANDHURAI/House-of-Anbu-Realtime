@@ -3,14 +3,15 @@ import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import AxiosInstance from "../../api/AxiosInterCepters";
 
-function ChatRoomPage({ chatId, chatName, currentUser }) {
+
+function ChatRoomPage({ chatId, chatName, currentUser, otherUser }) {
+
 
   // const { chatId } = useParams(); // Get chatId from URL params
   const navigate = useNavigate();
   const [socket, setSocket] = useState(null);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
-  const [otherUser, setOtherUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef(null);
 
@@ -59,6 +60,19 @@ function ChatRoomPage({ chatId, chatName, currentUser }) {
   };
 
 
+  const startVideoCall = async () => {
+    try {
+      const res = await AxiosInstance.post("/videocall/start/", {
+        receiver_id: otherUser.id, // or receiver ID from context
+      });
+      const { room_name } = res.data;
+      navigate(`/videocall/${room_name}#init`); // caller joins as initiator
+    } catch (error) {
+      console.error("Error starting call:", error);
+    }
+  };
+
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-gradient-to-br from-indigo-50 to-purple-50">
@@ -71,7 +85,7 @@ function ChatRoomPage({ chatId, chatName, currentUser }) {
     <div className="flex flex-col h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
       {/* Header */}
       <div className="bg-white shadow-md border-b border-gray-200">
-        <div className="flex items-center gap-3 p-4">
+        <div className="flex items-center justify-between gap-3 p-4">
           <div className="flex items-center gap-3 flex-1">
             <div className="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-white font-semibold">
               {otherUser?.name?.[0]?.toUpperCase() || "U"}
@@ -83,8 +97,20 @@ function ChatRoomPage({ chatId, chatName, currentUser }) {
               <p className="text-xs text-green-500">● Online</p>
             </div>
           </div>
+          <button
+            onClick={startVideoCall}
+            className="p-2 rounded-full bg-green-500 hover:bg-green-600 text-white shadow-md transition"
+            title="Start Video Call"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M4 6h8a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2z"
+              />
+            </svg>
+          </button>
         </div>
       </div>
+
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">

@@ -9,11 +9,16 @@ django_asgi_app = get_asgi_application()
 
 # Import routing *after* Django setup
 import chat.routing
+import videocall.routing
 from chat.middleware import TokenAuthMiddlewareStack
+
 
 application = ProtocolTypeRouter({
     "http": django_asgi_app,
     "websocket": TokenAuthMiddlewareStack(
-        URLRouter(chat.routing.websocket_urlpatterns)
+        URLRouter(
+            chat.routing.websocket_urlpatterns +
+            videocall.routing.websocket_urlpatterns
+        )
     ),
 })

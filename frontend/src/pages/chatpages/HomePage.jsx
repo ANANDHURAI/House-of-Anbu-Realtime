@@ -11,6 +11,7 @@ function HomePage() {
   const [user, setUser] = useState(null);
   const [activeChat, setActiveChat] = useState(null);
   const [activeChatName, setActiveChatName] = useState("");
+  const [activeChatUser, setActiveChatUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -37,15 +38,18 @@ function HomePage() {
     navigate("/login");
   };
 
+
   const handleSelectChat = (chatOrId, chatName) => {
     if (typeof chatOrId === 'object') {
-      // Called from ChatList - receives chat object
+      // From ChatList
       setActiveChat(chatOrId.id);
       setActiveChatName(chatOrId.other_user.name);
+      setActiveChatUser(chatOrId.other_user);
     } else {
-      // Called from Search - receives chatId and chatName as separate params
+      // From Search
       setActiveChat(chatOrId);
       setActiveChatName(chatName);
+      setActiveChatUser(null); // or fetch separately if needed
     }
   };
 
@@ -164,10 +168,12 @@ return (
             </button>
           </div>
           {/* Chat Room Component */}
+          
           <ChatRoom
             chatId={activeChat}
             chatName={activeChatName}
             currentUser={user}
+            otherUser={activeChatUser}
           />
         </>
       ) : (

@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     # application apps
     'accounts',
     'chat',
+    'videocall',
 ]
 
 MIDDLEWARE = [

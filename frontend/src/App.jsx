@@ -3,7 +3,8 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import RegisterPage from "./pages/auth/RegisterPage";
 import HomePage from "./pages/chatpages/HomePage";
 import Login from "./pages/auth/LoginPage";
-import ChatRoomPage from "./pages/chatpages/ChatRoomPage";
+import VideoCallPage from "./pages/video/VideoCallPage";
+
 
 function App() {
   return (
@@ -13,7 +14,7 @@ function App() {
         <Route path="/login" element={<Login />} />  
         <Route path="/register" element={<RegisterPage />} />  
         <Route path="/home" element={<HomePage />} />
-        <Route path="/chat/:chatId" element={<ChatRoomPage />} />
+        <Route path="/videocall/:room_name" element={<VideoCallPage />} />
       </Routes>
     </Router>
   );
