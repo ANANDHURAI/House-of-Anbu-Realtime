@@ -20,7 +20,6 @@ class Call(models.Model):
     duration = models.IntegerField(default=0, help_text="Call duration in seconds")
     is_missed = models.BooleanField(default=False)
 
-    # ✅ Use string reference to Chat (no import)
     chat = models.ForeignKey(
         'chat.Chat',
         on_delete=models.CASCADE,

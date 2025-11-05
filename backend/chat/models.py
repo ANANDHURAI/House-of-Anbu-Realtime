@@ -33,7 +33,7 @@ class Message(models.Model):
             ('call_missed', 'Missed Call'),
         ]
     )
-    # ✅ Use string reference to avoid circular import
+
     call = models.ForeignKey(
         'videocall.Call',
         on_delete=models.CASCADE,
