@@ -15,7 +15,7 @@ function ChatRoomPage({ chatId, chatName, currentUser, otherUser }) {
 
   const currentUserId = currentUser?.id;
   const currentUserName = currentUser?.name;
-  // Scroll to bottom when messages update
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -67,7 +67,7 @@ function ChatRoomPage({ chatId, chatName, currentUser, otherUser }) {
      
       sessionStorage.setItem('current_call_id', call_id);
       
-      navigate(`/videocall/${room_name}#init`);
+      navigate(`/videocall/${room_name}`);
     } catch (error) {
       console.error("Error starting call:", error);
       alert("Failed to start video call. Please try again.");

@@ -21,6 +21,8 @@ function VideoCallPage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
   const [isConnecting, setIsConnecting] = useState(true);
+  const myRoleRef = useRef(null);
+  const signalBufferRef = useRef([]);
 
   useEffect(() => {
     let interval;
@@ -46,197 +48,262 @@ function VideoCallPage() {
   }, [connected]);
 
   useEffect(() => {
-      const token = localStorage.getItem("access");
-      const ws = new WebSocket(
-        `ws://127.0.0.1:8000/ws/videocall/${room_name}/?token=${token}`
-      );
-      socketRef.current = ws;
+    const token = localStorage.getItem("access");
+    const ws = new WebSocket(
+      `ws://127.0.0.1:8000/ws/videocall/${room_name}/?token=${token}`
+    );
+    socketRef.current = ws;
 
-      let wsReady = false;
-
-      ws.onopen = () => {
-        console.log("WebSocket connected to video room");
-        wsReady = true;
-      };
-      
-      ws.onmessage = (event) => handleSignal(JSON.parse(event.data));
-      
-      ws.onclose = () => {
-        console.log("Video WebSocket closed");
-        setIsConnecting(false);
-      };
-
-      ws.onerror = (error) => {
-        console.error("WebSocket error:", error);
-        setIsConnecting(false);
-      };
-
-     
-      const isInitiator = window.location.hash === "#init";
-      const initDelay = isInitiator ? 500 : 1500;
-      
-      const timer = setTimeout(() => {
-        if (wsReady || isInitiator) {
-          console.log(`🎥 Starting media initialization (${isInitiator ? 'Initiator' : 'Receiver'})`);
-          initMedia();
-        } else {
-          console.log('⏳ Waiting for WebSocket...');
-          setTimeout(() => initMedia(), 1000);
-        }
-      }, initDelay);
-
-      return () => {
-        clearTimeout(timer);
-       
-        if (localStreamRef.current) {
-          localStreamRef.current.getTracks().forEach(track => {
-            track.stop();
-            console.log('Stopped track:', track.kind);
-          });
-        }
-        if (peerRef.current) {
-          peerRef.current.destroy();
-        }
-        if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-          socketRef.current.close();
-        }
-      };
-    }, [room_name]);
-
-  const initMedia = async (retryCount = 0) => {
-      const maxRetries = 3;
-      
-      try {
+    ws.onopen = () => {
+      console.log("WebSocket connected to video room");
+      initMedia();
+    };
     
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          throw new Error('Your browser does not support camera access');
-        }
+    ws.onmessage = (event) => handleSignal(JSON.parse(event.data));
+    
+    ws.onclose = () => {
+      console.log("Video WebSocket closed");
+      setIsConnecting(false);
+    };
 
-        if (localStreamRef.current) {
-          localStreamRef.current.getTracks().forEach(track => track.stop());
-          localStreamRef.current = null;
-        }
+    ws.onerror = (error) => {
+      console.error("WebSocket error:", error);
+      setIsConnecting(false);
+    };
 
-        console.log(`Attempting to access camera (attempt ${retryCount + 1}/${maxRetries + 1})...`);
-
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
-          },
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-          },
+    return () => {
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(track => {
+          track.stop();
+          console.log('Stopped track:', track.kind);
         });
+      }
+      if (peerRef.current) {
+        peerRef.current.destroy();
+      }
+      if (socketRef.current) {
+        socketRef.current.close();
+      }
+    };
+  }, [room_name]);
 
-        console.log('Camera access granted');
-        localStreamRef.current = stream;
+  const initMedia = async () => {
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Your browser does not support camera access');
+      }
 
-        if (localVideoRef.current) {
-          localVideoRef.current.srcObject = stream;
-        }
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(track => track.stop());
+      }
+
+      console.log('Requesting media access...');
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+        },
+      });
+
+      localStreamRef.current = stream;
+      console.log('Media stream acquired:', stream.id);
+
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = stream;
+      }
+
+      setIsConnecting(false);
+      console.log('Media initialized successfully, ready for peer creation');
+
+    } catch (err) {
+      console.error("Camera error:", err);
+    
+      let errorMessage = "Unable to access camera/microphone.\n\n";
       
-        await new Promise(resolve => setTimeout(resolve, 200));
-
+      if (err.name === 'NotAllowedError') {
+        errorMessage += "Please allow camera and microphone access in your browser settings.";
+      } else if (err.name === 'NotFoundError') {
+        errorMessage += "No camera or microphone found on your device.";
+      } else if (err.name === 'NotReadableError') {
+        errorMessage += "Camera is already in use by another application.\nPlease close other apps using the camera.";
+      } else {
+        errorMessage += err.message;
+      }
       
-        if (!Peer || typeof Peer !== 'function') {
-          console.error('Peer constructor not available');
-          throw new Error('SimplePeer library not loaded properly. Please refresh the page.');
-        }
+      alert(errorMessage);
+      navigate("/home");
+    }
+  };
 
-      const peerConfig = {
-        initiator: window.location.hash === "#init",
-        trickle: false,
-        stream: stream,
-        config: {
-          iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:global.stun.twilio.com:3478' }
-          ]
-        }
-      };
 
-      console.log('Creating peer - Initiator:', peerConfig.initiator);
-      const p = new Peer(peerConfig);
+  const createPeer = (isInitiator) => {
+    if (!localStreamRef.current) {
+      console.error('No local stream available, cannot create peer');
+      return;
+    }
 
-      peerRef.current = p;
+    if (peerRef.current) {
+      console.log('Peer already exists, destroying old one');
+      peerRef.current.destroy();
+    }
 
-      p.on("signal", (signal) => {
-        console.log('Sending signal:', signal.type);
-        socketRef.current?.send(
+    console.log('Creating peer, initiator:', isInitiator);
+    console.log('Local stream tracks:', localStreamRef.current.getTracks().map(t => `${t.kind}: ${t.enabled}`));
+
+    const p = new Peer({
+      initiator: isInitiator,
+      trickle: false,
+      stream: localStreamRef.current,
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:global.stun.twilio.com:3478' }
+        ]
+      }
+    });
+
+    peerRef.current = p;
+
+    p.on("signal", (signal) => {
+      console.log('Peer sending signal:', signal.type);
+      if (socketRef.current?.readyState === WebSocket.OPEN) {
+        socketRef.current.send(
           JSON.stringify({ type: "signal", signal })
         );
-      });
+        console.log('Signal sent via WebSocket');
+      } else {
+        console.error('WebSocket not open, cannot send signal. State:', socketRef.current?.readyState);
+      }
+    });
 
-      p.on("stream", (remoteStream) => {
-        console.log('Received remote stream');
-        if (remoteVideoRef.current) {
-          remoteVideoRef.current.srcObject = remoteStream;
-        }
-        setConnected(true);
+    p.on("stream", (remoteStream) => {
+      console.log('Received remote stream:', remoteStream.id);
+      console.log('Remote tracks:', remoteStream.getTracks().map(t => `${t.kind}: ${t.enabled}`));
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = remoteStream;
+      }
+      setConnected(true);
+      setIsConnecting(false);
+    });
+
+    p.on("connect", () => {
+      console.log('Peer connection established!');
+    });
+
+    p.on("error", (err) => {
+      console.error("Peer connection error:", err);
+      if (!err.message || (!err.message.includes('stable') && !err.message.includes('setRemoteDescription'))) {
         setIsConnecting(false);
-      });
+      }
+    });
 
-      p.on("error", (err) => {
-        console.error("Peer connection error:", err);
-        if (!err.message.includes('stable')) {
-          setIsConnecting(false);
+    p.on("close", () => {
+      console.log('Peer connection closed');
+      setConnected(false);
+    });
+
+    console.log('Peer created successfully, initiator:', isInitiator);
+
+    if (signalBufferRef.current.length > 0) {
+      console.log('Processing', signalBufferRef.current.length, 'buffered signals');
+      signalBufferRef.current.forEach(signal => {
+        try {
+          console.log('Processing buffered signal:', signal.type);
+          p.signal(signal);
+        } catch (error) {
+          console.error('Error processing buffered signal:', error);
         }
       });
+      signalBufferRef.current = [];
+    }
+  };
 
-      p.on("connect", () => {
-        console.log("Peer connection established");
-      });
 
-      p.on("close", () => {
-        console.log("Peer connection closed");
-        setConnected(false);
-      });
+  const handleSignal = (data) => {
+    console.log('Received WebSocket message:', data.type, data);
 
-      console.log('Peer initialized successfully');
+    // Handle connection status
+    if (data.type === "connection") {
+      console.log('Connection message:', data.message, 'Members:', data.member_count);
+      
+      // Determine role based on member count
+      const isInitiator = data.member_count === 1;
+      myRoleRef.current = isInitiator ? 'initiator' : 'receiver';
+      console.log('My role set to:', myRoleRef.current);
+      return;
+    }
 
-      } catch (err) {
-        console.error("Camera error:", err);
-       
-        if (err.name === 'NotReadableError' && retryCount < maxRetries) {
-          console.log(`⏳ Retrying in ${(retryCount + 1) * 1000}ms...`);
-          setTimeout(() => {
-            initMedia(retryCount + 1);
-          }, (retryCount + 1) * 1000);
+    // Handle both users ready - NOW create peers
+    if (data.type === "both_users_ready") {
+      console.log(' Both users ready! Creating peer with role:', myRoleRef.current);
+      
+      const tryCreatePeer = () => {
+        if (!localStreamRef.current) {
+          console.log('Waiting for media stream...');
+          setTimeout(tryCreatePeer, 100);
           return;
         }
         
-        let errorMessage = "Unable to access camera/microphone.\n\n";
-        
-        if (err.name === 'NotAllowedError') {
-          errorMessage += "Please allow camera and microphone access in your browser settings.";
-        } else if (err.name === 'NotFoundError') {
-          errorMessage += "No camera or microphone found on your device.";
-        } else if (err.name === 'NotReadableError') {
-          errorMessage += "Camera is already in use by another application.\n\nPlease:\n1. Close other tabs/apps using the camera\n2. Refresh this page\n3. Try again";
-        } else {
-          errorMessage += err.message;
+        if (!myRoleRef.current) {
+          console.error('Role not set! This should not happen.');
+          return;
         }
         
-        alert(errorMessage);
-        navigate("/home");
-      }
-    };
-
-  const handleSignal = (data) => {
-    if (data.type === "signal" && data.signal && peerRef.current) {
-      try {
-        console.log('Received signal:', data.signal.type);
-        peerRef.current.signal(data.signal);
-      } catch (error) {
-        console.error('Error handling signal:', error);
-        if (!error.message.includes('stable')) {
-          console.error('Signal processing failed:', error);
-        }
-      }
+        const isInitiator = myRoleRef.current === 'initiator';
+        console.log('Creating peer, isInitiator:', isInitiator, 'role:', myRoleRef.current);
+        createPeer(isInitiator);
+      };
+      
+      // Small delay to ensure both users are ready
+      setTimeout(tryCreatePeer, 300);
+      return;
     }
+
+    // Handle WebRTC signals
+    if (data.type === "signal" && data.signal) {
+      console.log('Received WebRTC signal:', data.signal.type);
+      
+      // If peer not ready yet, buffer the signal
+      if (!peerRef.current) {
+        console.log('Buffering signal (peer not ready yet)');
+        signalBufferRef.current.push(data.signal);
+        return;
+      }
+
+      try {
+        const pc = peerRef.current._pc;
+        const currentState = pc ? pc.signalingState : 'no peer connection';
+        console.log(' Current signaling state:', currentState);
+        
+        if (pc && currentState !== 'closed') {
+          peerRef.current.signal(data.signal);
+          console.log('Signal processed successfully');
+        } else {
+          console.error(' Peer not ready for signal, state:', currentState);
+        }
+      } catch (error) {
+        if (!error.message.includes('stable') && 
+            !error.message.includes('InvalidStateError') &&
+            !error.message.includes('setRemoteDescription')) {
+          console.error(' Signal processing failed:', error);
+        } else {
+          console.log('Ignoring expected state error:', error.message);
+        }
+      }
+      return;
+    }
+
+    // Handle user left
+    if (data.type === "user_left") {
+      console.log('➖ User left:', data.user);
+      return;
+    }
+
+    console.log('Unknown message type:', data.type);
   };
 
   const toggleMute = () => {
@@ -270,9 +337,10 @@ function VideoCallPage() {
     }
   };
 
+
   const cleanupCall = async () => {
       console.log('Cleaning up call...');
-      
+     
       if (localStreamRef.current) {
         localStreamRef.current.getTracks().forEach(track => {
           track.stop();
@@ -285,7 +353,7 @@ function VideoCallPage() {
         peerRef.current.destroy();
         peerRef.current = null;
       }
-      
+     
       if (callId) {
         try {
           await AxiosInstance.post(`/videocall/call/${callId}/update/`, {
@@ -301,6 +369,8 @@ function VideoCallPage() {
         socketRef.current.close();
       }
     };
+
+
   const endCall = async () => {
     await cleanupCall();
     navigate("/home");
@@ -340,12 +410,12 @@ function VideoCallPage() {
                 <div className="absolute inset-0 w-24 h-24 border-4 border-purple-500 border-b-transparent rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
               </div>
               <p className="mt-6 text-white text-xl font-medium animate-pulse">
-                {isConnecting ? "Initializing camera..." : "Waiting for other user..."}
+                {!localStreamRef.current ? "Initializing camera..." : "Waiting for other user..."}
               </p>
               <p className="mt-2 text-gray-400 text-sm">Room: {room_name}</p>
-              {!connected && (
+              {!connected && localStreamRef.current && (
                 <p className="mt-4 text-gray-500 text-xs">
-                  If stuck, make sure camera is not in use by other apps
+                  Connection established, waiting for peer...
                 </p>
               )}
             </div>

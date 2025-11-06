@@ -7,22 +7,30 @@ function IncomingCallModal({ callData, onReject }) {
   const [isRinging, setIsRinging] = useState(true);
 
   useEffect(() => {
-    const audio = new Audio('/ringtone.mp3');
-    audio.loop = true;
-    audio.volume = 0.5;
-    
-    const playPromise = audio.play();
-    if (playPromise !== undefined) {
-      playPromise.catch(e => {
-        console.log('Audio autoplay prevented:', e);
-      });
+    let audio = null;
+    try {
+      audio = new Audio('/ringtone.mp3');
+      audio.loop = true;
+      audio.volume = 0.5;
+      
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(e => {
+          console.log('Audio autoplay prevented or file not found:', e);
+        });
+      }
+    } catch (error) {
+      console.log('Could not load ringtone:', error);
     }
 
     return () => {
-      audio.pause();
-      audio.currentTime = 0;
+      if (audio) {
+        audio.pause();
+        audio.currentTime = 0;
+      }
     };
   }, []);
+  
 
   const handleAccept = async () => {
     setIsRinging(false);
@@ -32,7 +40,7 @@ function IncomingCallModal({ callData, onReject }) {
       });
       
       sessionStorage.setItem('current_call_id', callData.call_id);
-      
+ 
       navigate(`/videocall/${callData.room_name}`);
     } catch (error) {
       console.error('Error accepting call:', error);

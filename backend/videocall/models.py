@@ -5,9 +5,11 @@ User = get_user_model()
 
 class Call(models.Model):
     CALL_STATUS = [
+        ('ringing', 'Ringing'),
         ('pending', 'Pending'),
         ('accepted', 'Accepted'),
         ('rejected', 'Rejected'),
+        ('missed', 'Missed'),
         ('ended', 'Ended'),
     ]
 
