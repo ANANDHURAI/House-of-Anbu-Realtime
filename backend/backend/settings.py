@@ -14,15 +14,15 @@ SECRET_KEY = 'django-insecure-97w05)ugr0o9x%)c)$12aw_r+f%e!625@$-&r!2x)27-5!hz_(
 DEBUG = True
 
 ALLOWED_HOSTS = [
-    'house-of-anbu-backend.onrender.com',
-    '127.0.0.1:8000',
+    '127.0.0.1',
     'localhost',
+    '.onrender.com',
 ]
 
 
 
 INSTALLED_APPS = [
-    # 'daphne', 
+    'daphne', 
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -77,8 +77,11 @@ ASGI_APPLICATION = 'backend.asgi.application'
 
 CHANNEL_LAYERS = {
     'default': {
-        'BACKEND': 'channels.layers.InMemoryChannelLayer'
-    }
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [os.getenv('REDIS_URL', 'redis://localhost:6379')],
+        },
+    },
 }
 
 
@@ -147,8 +150,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Cors setup
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",     
-    "http://127.0.0.1:5173",    
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://*.onrender.com", 
 ]
 
 CORS_ALLOW_CREDENTIALS = True
