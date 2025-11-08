@@ -16,7 +16,7 @@ DEBUG = True
 ALLOWED_HOSTS = [
     '127.0.0.1',
     'localhost',
-    '.onrender.com',
+    'house-of-anbu-chat-backend.onrender.com',
 ]
 
 
@@ -150,6 +150,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "https://*.onrender.com", 
+    'house-of-anbu-chat-backend.onrender.com',
 ]
 
 CORS_ALLOW_CREDENTIALS = True
