@@ -13,7 +13,11 @@ SECRET_KEY = 'django-insecure-97w05)ugr0o9x%)c)$12aw_r+f%e!625@$-&r!2x)27-5!hz_(
 
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    'house-of-anbu-backend.onrender.com',
+    '127.0.0.1:8000',
+    'localhost',
+]
 
 
 
