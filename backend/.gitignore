@@ -13,7 +13,6 @@ staticfiles/
 static/
 
 # Build and virtual environment
-build/
 venv/
 env/
 *.log
