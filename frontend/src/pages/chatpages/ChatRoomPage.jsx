@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import AxiosInstance from "../../api/AxiosInterCepters";
+import { WS_URL } from "../../config/api";
 
 
 function ChatRoomPage({ chatId, chatName, currentUser, otherUser }) {
@@ -35,7 +36,7 @@ function ChatRoomPage({ chatId, chatName, currentUser, otherUser }) {
     
     fetchMessages();
     const token = localStorage.getItem("access");
-    const ws = new WebSocket(`ws://127.0.0.1:8000/ws/chat/${chatId}/?token=${token}`);
+    const ws = new WebSocket(`${WS_URL}/ws/chat/${chatId}/?token=${token}`);
 
     setSocket(ws);
 

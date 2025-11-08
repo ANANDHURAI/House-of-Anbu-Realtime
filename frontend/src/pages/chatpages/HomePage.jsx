@@ -7,6 +7,9 @@ import ChatRoom from "./ChatRoomPage";
 import ChatList from "../../components/chat/Sidebar/ChatList";
 import IncomingCallModal from "../video/IncomingCallModal";
 import ProfilePanel from "../../components/profile/ProfilePanel";
+import { WS_URL } from "../../config/api";
+
+
 
 function HomePage() {
   const [user, setUser] = useState(null);
@@ -41,7 +44,7 @@ function HomePage() {
     if (!user) return;
 
     const token = localStorage.getItem("access");
-    const ws = new WebSocket(`ws://127.0.0.1:8000/ws/call-notifications/?token=${token}`);
+    const ws = new WebSocket(`${WS_URL}/ws/call-notifications/?token=${token}`);
     callNotificationSocket.current = ws;
 
     ws.onopen = () => {
@@ -74,7 +77,7 @@ function HomePage() {
     };
 
 
-    const notificationWs = new WebSocket(`ws://127.0.0.1:8000/ws/user-notifications/?token=${token}`);
+    const notificationWs = new WebSocket(`${WS_URL}/ws/user-notifications/?token=${token}`);
     
     notificationWs.onopen = () => {
       console.log("Connected to user notifications");

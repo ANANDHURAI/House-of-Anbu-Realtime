@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import Peer from "simple-peer";
 import { useParams, useNavigate } from "react-router-dom";
 import AxiosInstance from "../../api/AxiosInterCepters";
+import { WS_URL } from "../../config/api";
 
 function VideoCallPage() {
   const { room_name } = useParams();
@@ -69,7 +70,7 @@ function VideoCallPage() {
       setCallId(storedCallId);
      
       const token = localStorage.getItem("access");
-      const notificationWs = new WebSocket(`ws://127.0.0.1:8000/ws/call-notifications/?token=${token}`);
+      const notificationWs = new WebSocket(`${WS_URL}/ws/call-notifications/?token=${token}`);
       
       notificationWs.onmessage = (event) => {
         const data = JSON.parse(event.data);
@@ -98,7 +99,7 @@ function VideoCallPage() {
   useEffect(() => {
     const token = localStorage.getItem("access");
     const ws = new WebSocket(
-      `ws://127.0.0.1:8000/ws/videocall/${room_name}/?token=${token}`
+      `${WS_URL}/ws/videocall/${room_name}/?token=${token}`
     );
     socketRef.current = ws;
 

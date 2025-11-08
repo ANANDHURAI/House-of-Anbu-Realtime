@@ -1,4 +1,5 @@
 import React, { useState, useEffect ,useRef} from "react";
+import { WS_URL } from "../../config/api";
 
 function ChatRoom({ chatId, chatName, currentUser }) {
   const [socket, setSocket] = useState(null);
@@ -27,7 +28,7 @@ function ChatRoom({ chatId, chatName, currentUser }) {
     
     fetchMessages();
 
-    const ws = new WebSocket(`ws://127.0.0.1:8000/ws/chat/${chatId}/`);
+    const ws = new WebSocket(`${WS_URL}/ws/chat/${chatId}/`);
     
     ws.onopen = () => {
       console.log("Connected to WebSocket");
