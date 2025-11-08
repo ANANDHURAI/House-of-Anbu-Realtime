@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState,useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AxiosInstance from '../../api/AxiosInterCepters';
 
-function IncomingCallModal({ callData, onReject }) {
+function IncomingCallModal({ callData, onReject, onCallEnded }) {
   const navigate = useNavigate();
   const [isRinging, setIsRinging] = useState(true);
+  const hasActionedRef = useRef(false);
 
   useEffect(() => {
     let audio = null;
@@ -30,9 +31,12 @@ function IncomingCallModal({ callData, onReject }) {
       }
     };
   }, []);
-  
+
 
   const handleAccept = async () => {
+    if (hasActionedRef.current) return;
+    hasActionedRef.current = true;
+    
     setIsRinging(false);
     try {
       await AxiosInstance.post(`/videocall/call/${callData.call_id}/update/`, {
@@ -40,29 +44,35 @@ function IncomingCallModal({ callData, onReject }) {
       });
       
       sessionStorage.setItem('current_call_id', callData.call_id);
- 
-      navigate(`/videocall/${callData.room_name}`);
+      navigate(`/videocall/${callData.room_name}`, { replace: true });
     } catch (error) {
       console.error('Error accepting call:', error);
       alert('Failed to accept call. Please try again.');
+      hasActionedRef.current = false;
     }
   };
 
   const handleReject = async () => {
+    if (hasActionedRef.current) return;
+    hasActionedRef.current = true;
+    
     setIsRinging(false);
     try {
       await AxiosInstance.post(`/videocall/call/${callData.call_id}/update/`, {
         status: 'rejected'
       });
+      console.log('Call rejected successfully');
       onReject();
     } catch (error) {
       console.error('Error rejecting call:', error);
+      hasActionedRef.current = false;
+      onReject();
     }
   };
 
   if (!isRinging) return null;
 
-return (
+  return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80 transition-opacity duration-300">
       <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-8 shadow-2xl max-w-sm w-full mx-4 transform transition-all duration-400">
         <div className="text-center mb-8">
@@ -78,7 +88,6 @@ return (
                 {callData.caller_name?.[0]?.toUpperCase()}
               </div>
             )}
-          
             <div className="absolute inset-0 rounded-full border-4 border-white animate-ping opacity-75"></div>
             <div 
               className="absolute inset-0 w-24 h-24 border-4 border-white rounded-full animate-spin opacity-75"
@@ -97,9 +106,7 @@ return (
           </p>
         </div>
 
-      
         <div className="flex gap-4 justify-center">
-          
           <button
             onClick={handleReject}
             className="group relative p-6 bg-red-500 hover:bg-red-600 rounded-full transition-all duration-200 transform hover:scale-110 shadow-lg"
@@ -112,7 +119,6 @@ return (
             </span>
           </button>
 
-         
           <button
             onClick={handleAccept}
             className="group relative p-6 bg-green-500 hover:bg-green-600 rounded-full transition-all duration-200 transform hover:scale-110 shadow-lg animate-pulse"

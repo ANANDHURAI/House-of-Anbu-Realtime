@@ -50,24 +50,68 @@ function ChatRoomPage({ chatId, chatName, currentUser, otherUser }) {
     return () => ws.close();
   }, [chatId]);
 
-  const sendMessage = () => {
+  useEffect(() => {
+    const markMessagesAsRead = async () => {
+      try {
+        await AxiosInstance.post(`/chat/${chatId}/mark-read/`);
+        window.dispatchEvent(new CustomEvent('refreshChatList'));
+
+      } catch (err) {
+        console.error("Failed to mark messages as read:", err);
+      }
+    };
+    
+    if (chatId) {
+      markMessagesAsRead();
+    }
+  }, [chatId]);
+
+  const sendMessage = async () => {
     if (!socket || input.trim() === "") return;
+
     socket.send(JSON.stringify({ message: input, sender_id: currentUserId }));
     setInput("");
+  
+    window.dispatchEvent(new CustomEvent('refreshChatList'));
   };
+
 
 
   const startVideoCall = async () => {
     try {
+    
+      let receiverId = otherUser?.id;
+      
+      if (!receiverId) {
+        const chatRes = await AxiosInstance.get(`/chat/${chatId}/messages/`);
+        if (chatRes.data.length > 0) {
+         
+          const message = chatRes.data[0];
+          receiverId = message.sender_id === currentUserId 
+            ? chatRes.data.find(m => m.sender_id !== currentUserId)?.sender_id
+            : message.sender_id;
+        }
+        
+        if (!receiverId) {
+        
+          const chatDetailRes = await AxiosInstance.get(`/chat/chat-details/${chatId}/`);
+          receiverId = chatDetailRes.data.other_user.id;
+        }
+      }
+      
+      if (!receiverId) {
+        alert("Unable to identify the other user. Please try again.");
+        return;
+      }
+
       const res = await AxiosInstance.post("/videocall/start/", {
-        receiver_id: otherUser.id,
+        receiver_id: receiverId,
       });
       const { room_name, call_id } = res.data;
       
-     
       sessionStorage.setItem('current_call_id', call_id);
       
-      navigate(`/videocall/${room_name}`);
+      navigate(`/videocall/${room_name}`, { replace: true });
     } catch (error) {
       console.error("Error starting call:", error);
       alert("Failed to start video call. Please try again.");
@@ -88,9 +132,22 @@ return (
       <div className="bg-white shadow-md border-b border-gray-200">
         <div className="flex items-center justify-between gap-3 p-4">
           <div className="flex items-center gap-3 flex-1">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-white font-semibold">
-              {otherUser?.name?.[0]?.toUpperCase() || "U"}
-            </div>
+            {otherUser?.profile_image ? (
+              <img
+                src={otherUser.profile_image}
+                alt={otherUser.name || "User"}
+                className="w-10 h-10 rounded-full object-cover border-2 border-indigo-500"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+                }}
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-white font-semibold">
+                {otherUser?.name?.charAt(0).toUpperCase() || "U"}
+              </div>
+            )}
+
             <div>
               <h2 className="font-semibold text-gray-800">
                 {chatName || otherUser?.name || "Chat"}
@@ -98,6 +155,7 @@ return (
               <p className="text-xs text-green-500">● Online</p>
             </div>
           </div>
+
           <button
             onClick={startVideoCall}
             className="p-2 rounded-full bg-green-500 hover:bg-green-600 text-white shadow-md transition"
@@ -111,8 +169,6 @@ return (
           </button>
         </div>
       </div>
-
-
    
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.length === 0 ? (

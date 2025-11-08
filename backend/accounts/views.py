@@ -7,6 +7,7 @@ from .models import UserAccount
 from .utils import send_otp_to_email
 from django.core.cache import cache
 from rest_framework.permissions import AllowAny,IsAuthenticated
+from rest_framework.parsers import MultiPartParser, FormParser
 
 
 class RegisterAPIView(APIView):
@@ -128,18 +129,56 @@ class LoginVerifyOTPAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class UserProfileAPIView(APIView):
-    """
-    Get current user profile (protected route)
-    """
+class UserProfileAPIView(APIView): 
     permission_classes = [IsAuthenticated]
-    
+
     def get(self, request):
         user = request.user
+        
+        profile_image_url = None
+        if user.profile_image:
+            profile_image_url = request.build_absolute_uri(user.profile_image.url)
+        
         return Response({
             "email": user.email,
             "name": user.name,
             "phone": user.phone,
             "about_me": user.about_me,
-            "profile_image": user.profile_image.url if user.profile_image else None
+            "profile_image": profile_image_url 
+        }, status=status.HTTP_200_OK)
+
+
+
+class UserProfileUpdateAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def put(self, request):
+        user = request.user
+        name = request.data.get("name")
+        about_me = request.data.get("about_me")
+        profile_image = request.FILES.get("profile_image") 
+
+        if name:
+            user.name = name
+        if about_me:
+            user.about_me = about_me
+        if profile_image:
+            user.profile_image = profile_image
+
+        user.save()
+        
+        profile_image_url = None
+        if user.profile_image:
+            profile_image_url = request.build_absolute_uri(user.profile_image.url)
+        
+        return Response({
+            "message": "Profile updated successfully",
+            "user": {
+                "email": user.email,
+                "name": user.name,
+                "phone": user.phone,
+                "about_me": user.about_me,
+                "profile_image": profile_image_url
+            }
         }, status=status.HTTP_200_OK)

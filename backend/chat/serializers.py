@@ -16,23 +16,31 @@ class MessageSerializer(serializers.ModelSerializer):
 class UserMiniSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'name', 'email', 'profile_image']
-        
+        fields = ['id', 'name', 'email', 'about_me', 'profile_image']
 
+    def get_profile_image(self, obj):
+        request = self.context.get('request')
+        if obj.profile_image:
+            if request:
+                return request.build_absolute_uri(obj.profile_image.url)
+            return obj.profile_image.url
+        return None
+        
 class ChatSerializer(serializers.ModelSerializer):
     other_user = serializers.SerializerMethodField()
     last_message = serializers.SerializerMethodField()
     last_timestamp = serializers.SerializerMethodField()
+    unread_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Chat
-        fields = ['id', 'other_user', 'last_message', 'last_timestamp']
+        fields = ['id', 'other_user', 'last_message', 'last_timestamp', 'unread_count']
 
     def get_other_user(self, obj):
         request = self.context.get('request')
         if obj.user1 == request.user:
-            return UserMiniSerializer(obj.user2).data
-        return UserMiniSerializer(obj.user1).data
+            return UserMiniSerializer(obj.user2, context={'request': request}).data
+        return UserMiniSerializer(obj.user1, context={'request': request}).data
 
     def get_last_message(self, obj):
         last_msg = obj.messages.order_by('-timestamp').first()
@@ -43,5 +51,10 @@ class ChatSerializer(serializers.ModelSerializer):
     def get_last_timestamp(self, obj):
         last_msg = obj.messages.order_by('-timestamp').first()
         return last_msg.timestamp if last_msg else None
+    
+    def get_unread_count(self, obj):
+        request = self.context.get('request')
+        return obj.messages.filter(is_read=False).exclude(sender=request.user).count()
+    
 
-
+    

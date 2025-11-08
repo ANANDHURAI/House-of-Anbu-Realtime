@@ -6,7 +6,7 @@ from django.db.models import Q
 from .models import Chat, Message
 from accounts.models import UserAccount
 from .serializers import MessageSerializer , ChatSerializer
-
+from django.utils import timezone
 
 class SearchingView(APIView):
 
@@ -74,4 +74,41 @@ class ChatListView(APIView):
         return Response(serializer.data)
 
 
+class MarkMessagesAsReadView(APIView):
+    permission_classes = [IsAuthenticated]
     
+    def post(self, request, chat_id):
+        try:
+            chat = Chat.objects.get(id=chat_id)
+            
+            Message.objects.filter(
+                chat=chat,
+                is_read=False
+            ).exclude(sender=request.user).update(is_read=True)
+            
+            return Response({"success": True}, status=status.HTTP_200_OK)
+        except Chat.DoesNotExist:
+            return Response({"error": "Chat not found"}, status=status.HTTP_404_NOT_FOUND)
+
+
+
+class ChatDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, chat_id):
+        try:
+            chat = Chat.objects.get(id=chat_id)
+            
+            other_user = chat.user2 if chat.user1 == request.user else chat.user1
+            
+            return Response({
+                'id': chat.id,
+                'other_user': {
+                    'id': other_user.id,
+                    'name': other_user.name,
+                    'email': other_user.email,
+                    'profile_image': request.build_absolute_uri(other_user.profile_image.url) if other_user.profile_image else None
+                }
+            }, status=status.HTTP_200_OK)
+        except Chat.DoesNotExist:
+            return Response({"error": "Chat not found"}, status=status.HTTP_404_NOT_FOUND)

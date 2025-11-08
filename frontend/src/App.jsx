@@ -1,4 +1,3 @@
-// App.jsx
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import RegisterPage from "./pages/auth/RegisterPage";
 import HomePage from "./pages/chatpages/HomePage";

@@ -30,10 +30,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         try:
+            from django.utils import timezone
             
             user = self.scope.get("user")
             
-          
             if not user or user.is_anonymous:
                 await self.send(text_data=json.dumps({
                     'error': 'User not authenticated'
@@ -47,9 +47,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
             if not message_content:
                 return
 
-            
             chat = await self.get_chat(self.chat_id)
             new_msg = await self.create_message(chat, user, message_content)
+            
+            await self.update_chat_timestamp(chat)
 
             await self.channel_layer.group_send(
                 self.room_group_name,
@@ -61,6 +62,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     'timestamp': new_msg.timestamp.isoformat()
                 }
             )
+
+            await self.notify_chat_users(chat)
             
             print(f"Message sent: {message_content} from {user.name}")
 
@@ -70,6 +73,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 'error': str(e)
             }))
 
+
     async def chat_message(self, event):
    
         await self.send(text_data=json.dumps({
@@ -78,6 +82,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'sender_id': event.get('sender_id'),
             'timestamp': event['timestamp']
         }))
+
+    
 
     @database_sync_to_async
     def get_chat(self, chat_id):
@@ -90,3 +96,26 @@ class ChatConsumer(AsyncWebsocketConsumer):
             sender=sender, 
             content=message
         )
+    
+    @database_sync_to_async
+    def update_chat_timestamp(self, chat):
+        from django.utils import timezone
+        chat.updated_at = timezone.now()
+        chat.save(update_fields=['updated_at'])
+
+    async def notify_chat_users(self, chat):
+        user1_id = await self.get_user_id(chat, 'user1')
+        user2_id = await self.get_user_id(chat, 'user2')
+        
+        for user_id in [user1_id, user2_id]:
+            await self.channel_layer.group_send(
+                f'user_notifications_{user_id}',
+                {
+                    'type': 'refresh_chat_list',
+                    'action': 'refresh'
+                }
+            )
+
+    @database_sync_to_async
+    def get_user_id(self, chat, field):
+        return getattr(chat, field).id

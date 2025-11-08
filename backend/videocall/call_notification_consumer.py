@@ -33,3 +33,6 @@ class CallNotificationConsumer(AsyncWebsocketConsumer):
     
     async def call_ended(self, event):
         await self.send(text_data=json.dumps(event['data']))
+
+    async def call_cancelled(self, event):
+        await self.send(text_data=json.dumps(event['data']))

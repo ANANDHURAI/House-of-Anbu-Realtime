@@ -4,7 +4,8 @@ from .views import (
     VerifyOTPAPIView, 
     LoginRequestAPIView,
     LoginVerifyOTPAPIView,
-    UserProfileAPIView
+    UserProfileAPIView,
+    UserProfileUpdateAPIView
 )
 from rest_framework_simplejwt.views import TokenRefreshView, TokenObtainPairView
 
@@ -23,4 +24,5 @@ urlpatterns = [
     
     # Protected routes
     path('profile/', UserProfileAPIView.as_view(), name='user-profile'),
+    path("profile/update/", UserProfileUpdateAPIView.as_view(), name="user-profile-update"),
 ]

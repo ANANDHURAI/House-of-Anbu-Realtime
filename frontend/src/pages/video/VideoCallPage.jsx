@@ -21,8 +21,37 @@ function VideoCallPage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
   const [isConnecting, setIsConnecting] = useState(true);
+  const [callCancelled, setCallCancelled] = useState(false);
   const myRoleRef = useRef(null);
   const signalBufferRef = useRef([]);
+
+  useEffect(() => {
+    const handlePopState = (event) => {
+      if (!connected && !localStreamRef.current) {
+        navigate('/home', { replace: true });
+      }
+    };
+    
+    window.addEventListener('popstate', handlePopState);
+    
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [connected, navigate]);
+
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
 
   useEffect(() => {
     let interval;
@@ -38,6 +67,25 @@ function VideoCallPage() {
     const storedCallId = sessionStorage.getItem('current_call_id');
     if (storedCallId) {
       setCallId(storedCallId);
+     
+      const token = localStorage.getItem("access");
+      const notificationWs = new WebSocket(`ws://127.0.0.1:8000/ws/call-notifications/?token=${token}`);
+      
+      notificationWs.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        console.log("Call notification in VideoCallPage:", data);
+        
+        if (data.type === 'call_ended' && data.call_id === parseInt(storedCallId)) {
+          if (data.message) {
+            alert(data.message);
+            endCall();
+          }
+        }
+      };
+      
+      return () => {
+        notificationWs.close();
+      };
     }
   }, []);
 
@@ -59,7 +107,10 @@ function VideoCallPage() {
       initMedia();
     };
     
-    ws.onmessage = (event) => handleSignal(JSON.parse(event.data));
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      handleSignal(data);
+    };
     
     ws.onclose = () => {
       console.log("Video WebSocket closed");
@@ -72,12 +123,16 @@ function VideoCallPage() {
     };
 
     return () => {
+      console.log('Component unmounting, cleaning up...');
+      
       if (localStreamRef.current) {
         localStreamRef.current.getTracks().forEach(track => {
           track.stop();
-          console.log('Stopped track:', track.kind);
+          console.log('Unmount: Stopped track:', track.kind);
         });
+        localStreamRef.current = null;
       }
+      
       if (peerRef.current) {
         peerRef.current.destroy();
       }
@@ -226,18 +281,15 @@ function VideoCallPage() {
   const handleSignal = (data) => {
     console.log('Received WebSocket message:', data.type, data);
 
-    // Handle connection status
     if (data.type === "connection") {
       console.log('Connection message:', data.message, 'Members:', data.member_count);
-      
-      // Determine role based on member count
+    
       const isInitiator = data.member_count === 1;
       myRoleRef.current = isInitiator ? 'initiator' : 'receiver';
       console.log('My role set to:', myRoleRef.current);
       return;
     }
 
-    // Handle both users ready - NOW create peers
     if (data.type === "both_users_ready") {
       console.log(' Both users ready! Creating peer with role:', myRoleRef.current);
       
@@ -258,16 +310,13 @@ function VideoCallPage() {
         createPeer(isInitiator);
       };
       
-      // Small delay to ensure both users are ready
       setTimeout(tryCreatePeer, 300);
       return;
     }
 
-    // Handle WebRTC signals
     if (data.type === "signal" && data.signal) {
       console.log('Received WebRTC signal:', data.signal.type);
-      
-      // If peer not ready yet, buffer the signal
+     
       if (!peerRef.current) {
         console.log('Buffering signal (peer not ready yet)');
         signalBufferRef.current.push(data.signal);
@@ -297,9 +346,11 @@ function VideoCallPage() {
       return;
     }
 
-    // Handle user left
+    
     if (data.type === "user_left") {
-      console.log('➖ User left:', data.user);
+      console.log(' User left:', data.user);
+      alert(`${data.user} has ended the call`);
+      endCall();
       return;
     }
 
@@ -339,41 +390,50 @@ function VideoCallPage() {
 
 
   const cleanupCall = async () => {
-      console.log('Cleaning up call...');
-     
-      if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach(track => {
-          track.stop();
-          console.log('Stopped track:', track.kind);
+    console.log('Cleaning up call...');
+    
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => {
+        track.stop();
+        console.log('Stopped track:', track.kind);
+      });
+      localStreamRef.current = null;
+    }
+  
+    if (localVideoRef.current) {
+      localVideoRef.current.srcObject = null;
+    }
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.srcObject = null;
+    }
+    
+    if (peerRef.current) {
+      peerRef.current.destroy();
+      peerRef.current = null;
+    }
+
+    if (callId) {
+      try {
+        const status = connected ? 'ended' : 'cancelled';
+        await AxiosInstance.post(`/videocall/call/${callId}/update/`, {
+          status: status
         });
-        localStreamRef.current = null;
+        sessionStorage.removeItem('current_call_id');
+      } catch (error) {
+        console.error('Error updating call status:', error);
       }
-      
-      if (peerRef.current) {
-        peerRef.current.destroy();
-        peerRef.current = null;
-      }
-     
-      if (callId) {
-        try {
-          await AxiosInstance.post(`/videocall/call/${callId}/update/`, {
-            status: 'ended'
-          });
-          sessionStorage.removeItem('current_call_id');
-        } catch (error) {
-          console.error('Error updating call status:', error);
-        }
-      }
-      
-      if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-        socketRef.current.close();
-      }
-    };
+    }
+
+    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+      socketRef.current.close();
+    }
+  };
 
 
   const endCall = async () => {
+    console.log('Ending call manually...');
     await cleanupCall();
-    navigate("/home");
+    navigate("/home", { replace: true });
   };
 
   const formatDuration = (seconds) => {

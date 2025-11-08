@@ -49,33 +49,38 @@ class VideoCallConsumer(AsyncWebsocketConsumer):
         
         print(f"User {self.user.name} waiting for peer creation signal")
   
+  
     async def disconnect(self, close_code):
-      
+        user_name = self.user.name if hasattr(self, 'user') else 'Unknown'
+        
         if hasattr(self.channel_layer, 'room_members'):
             if self.room_group_name in self.channel_layer.room_members:
                 self.channel_layer.room_members[self.room_group_name] = [
                     member for member in self.channel_layer.room_members[self.room_group_name]
                     if member['user_id'] != self.user.id
                 ]
-             
+                
                 if len(self.channel_layer.room_members[self.room_group_name]) == 0:
                     del self.channel_layer.room_members[self.room_group_name]
 
-        await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
-    
         await self.channel_layer.group_send(
             self.room_group_name,
             {
                 "type": "send_message",
                 "message": {
                     "type": "user_left",
-                    "user": self.user.name
+                    "user": user_name
                 },
                 "sender_channel": self.channel_name
             }
         )
+    
+        await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
         
-        print(f"{self.user.name} disconnected from {self.room_name}")
+        print(f"{user_name} disconnected from {self.room_name}")
+
+
+
 
     async def receive(self, text_data):
         data = json.loads(text_data)

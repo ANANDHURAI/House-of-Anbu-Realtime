@@ -9,6 +9,7 @@ class Call(models.Model):
         ('pending', 'Pending'),
         ('accepted', 'Accepted'),
         ('rejected', 'Rejected'),
+        ('cancelled', 'Cancelled'),
         ('missed', 'Missed'),
         ('ended', 'Ended'),
     ]
