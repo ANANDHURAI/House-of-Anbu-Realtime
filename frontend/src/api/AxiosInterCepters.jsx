@@ -1,7 +1,7 @@
 import axios from "axios";
 
-// const BASEURL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
-const BASEURL = "https://house-of-anbu-chat-backend.onrender.com";
+const BASEURL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+// const BASEURL = "https://house-of-anbu-chat-backend.onrender.com";
 
 const AxiosInstance = axios.create({
   baseURL: BASEURL,

@@ -155,6 +155,11 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ALLOW_CREDENTIALS = True
 
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://house-of-anbu-chat-frontend.onrender.com',
+    'http://localhost:5173',
+]
+
 # DRF setup
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
