@@ -195,7 +195,6 @@ SIMPLE_JWT = {
 
 AUTH_USER_MODEL = 'accounts.UserAccount'
 
-# BREVO_API_KEY = os.getenv("BREVO_API_KEY")
 
 # Email setup - GMAIL
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -206,3 +205,4 @@ EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 DEFAULT_FROM_EMAIL = os.getenv("EMAIL_HOST_USER")
 
+RESEND_API_KEY=os.getenv("RESEND_API_KEY")
