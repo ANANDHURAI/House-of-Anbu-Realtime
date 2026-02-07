@@ -6,6 +6,7 @@ from sendgrid.helpers.mail import Mail
 from django.conf import settings
 
 
+
 def send_otp_to_email(email, email_subject):
     otp = str(random.randint(1000, 9999))
     cache.set(email, otp, timeout=300)
