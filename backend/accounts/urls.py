@@ -7,7 +7,7 @@ from .views import (
     UserProfileAPIView,
     UserProfileUpdateAPIView
 )
-from rest_framework_simplejwt.views import TokenRefreshView, TokenObtainPairView
+from rest_framework_simplejwt.views import TokenRefreshView
 
 
 urlpatterns = [
