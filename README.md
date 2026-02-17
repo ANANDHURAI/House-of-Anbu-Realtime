@@ -2,7 +2,8 @@
 
 > A high-concurrency video calling and messaging application built with Django Channels, WebRTC, and Redis. Engineered to handle sub-100ms latency for peer-to-peer communication.
 
-![App Screenshot](Add_Your_Screenshot_Here)
+
+<img width="1909" height="910" alt="Screenshot 2026-02-17 125548" src="https://github.com/user-attachments/assets/12fbe1e5-7e2b-4fed-a043-4304215aedeb" />
 
 [![Live Demo](https://img.shields.io/badge/demo-online-green.svg)](YOUR_LIVE_LINK_HERE)
 ![Python](https://img.shields.io/badge/python-3.9-blue.svg)
