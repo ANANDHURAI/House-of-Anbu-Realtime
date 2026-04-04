@@ -5,6 +5,9 @@
 **Django | Django REST Framework (DRF) | React.js | WebRTC | WebSockets | PostgreSQL | Redis | JWT | Socket.io**
 
 ---
+## Project Preview
+
+![House of Anbu Screenshot](https://github.com/ANANDHURAI/House-of-Anbu-Realtime/blob/main/Screenshot%202026-04-04%20233537.png?raw=true)
 
 ## 📌 Project Overview
 
