@@ -70,7 +70,7 @@ function VideoCallPage() {
       setCallId(storedCallId);
      
       const token = localStorage.getItem("access");
-      const notificationWs = new WebSocket(`${WS_URL}/ws/call-notifications/?token=${token}`);
+      const notificationWs = new WebSocket(`${WS_URL}/ws/notifications/?token=${token}`);
       
       notificationWs.onmessage = (event) => {
         const data = JSON.parse(event.data);

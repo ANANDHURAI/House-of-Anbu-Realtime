@@ -1,12 +1,10 @@
-
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import AxiosInstance from "../../api/AxiosInterCepters";
 import { WS_URL } from "../../config/api";
-
+import { Phone, Video, Send, MoreVertical, Shield, PhoneMissed, VideoOff } from "lucide-react";
 
 function ChatRoomPage({ chatId, chatName, currentUser, otherUser }) {
-
   const navigate = useNavigate();
   const [socket, setSocket] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -21,270 +19,191 @@ function ChatRoomPage({ chatId, chatName, currentUser, otherUser }) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  
+  const markMessagesAsRead = useCallback(async () => {
+    if (!chatId) return;
+    try {
+      await AxiosInstance.post(`/chat/${chatId}/mark-read/`);
+      window.dispatchEvent(new CustomEvent('refreshChatList'));
+    } catch (err) {
+      console.error("Failed to mark messages as read:", err);
+    }
+  }, [chatId]);
+
   useEffect(() => {
+    if (!chatId) return;
     const fetchMessages = async () => {
       try {
         const res = await AxiosInstance.get(`/chat/${chatId}/messages/`);
         setMessages(res.data);
         setLoading(false);
       } catch (err) {
-        console.error("Failed to load messages:", err);
         setLoading(false);
       }
     };
-    
     fetchMessages();
+    markMessagesAsRead();
+
     const token = localStorage.getItem("access");
     const ws = new WebSocket(`${WS_URL}/ws/chat/${chatId}/?token=${token}`);
-
     setSocket(ws);
 
-    ws.onopen = () => console.log("Connected to WebSocket");
     ws.onmessage = (e) => {
       const data = JSON.parse(e.data);
       setMessages((prev) => [...prev, data]);
-    };
-    ws.onerror = (error) => console.error("WebSocket error:", error);
-    ws.onclose = () => console.log("Disconnected from WebSocket");
-
-    return () => ws.close();
-  }, [chatId]);
-
-  useEffect(() => {
-    const markMessagesAsRead = async () => {
-      try {
-        await AxiosInstance.post(`/chat/${chatId}/mark-read/`);
-        window.dispatchEvent(new CustomEvent('refreshChatList'));
-
-      } catch (err) {
-        console.error("Failed to mark messages as read:", err);
+      if (data.sender_id !== currentUserId || data.message_type === 'call' || data.message_type === 'call_missed') {
+        markMessagesAsRead();
       }
     };
-    
-    if (chatId) {
-      markMessagesAsRead();
-    }
-  }, [chatId]);
+    return () => ws.close();
+  }, [chatId, currentUserId, markMessagesAsRead]);
 
   const sendMessage = async () => {
     if (!socket || input.trim() === "") return;
-
     socket.send(JSON.stringify({ message: input, sender_id: currentUserId }));
     setInput("");
-  
     window.dispatchEvent(new CustomEvent('refreshChatList'));
   };
 
-
-
   const startVideoCall = async () => {
     try {
-    
       let receiverId = otherUser?.id;
-      
       if (!receiverId) {
-        const chatRes = await AxiosInstance.get(`/chat/${chatId}/messages/`);
-        if (chatRes.data.length > 0) {
-         
-          const message = chatRes.data[0];
-          receiverId = message.sender_id === currentUserId 
-            ? chatRes.data.find(m => m.sender_id !== currentUserId)?.sender_id
-            : message.sender_id;
-        }
-        
-        if (!receiverId) {
-        
-          const chatDetailRes = await AxiosInstance.get(`/chat/chat-details/${chatId}/`);
-          receiverId = chatDetailRes.data.other_user.id;
-        }
+        const chatDetailRes = await AxiosInstance.get(`/chat/chat-details/${chatId}/`);
+        receiverId = chatDetailRes.data.other_user.id;
       }
-      
-      if (!receiverId) {
-        alert("Unable to identify the other user. Please try again.");
-        return;
-      }
-
-      const res = await AxiosInstance.post("/videocall/start/", {
-        receiver_id: receiverId,
-      });
+      const res = await AxiosInstance.post("/videocall/start/", { receiver_id: receiverId });
       const { room_name, call_id } = res.data;
-      
       sessionStorage.setItem('current_call_id', call_id);
-      
       navigate(`/videocall/${room_name}`, { replace: true });
     } catch (error) {
-      console.error("Error starting call:", error);
-      alert("Failed to start video call. Please try again.");
+      alert("Failed to start video call.");
     }
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-indigo-50 to-purple-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <div className="flex items-center justify-center h-screen bg-[#0a0a0a]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d4af37]"></div>
       </div>
     );
   }
 
-return (
-    <div className="flex flex-col h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
-      
-      <div className="bg-white shadow-md border-b border-gray-200">
-        <div className="flex items-center justify-between gap-3 p-4">
-          <div className="flex items-center gap-3 flex-1">
-            {otherUser?.profile_image ? (
-              <img
-                src={otherUser.profile_image}
-                alt={otherUser.name || "User"}
-                className="w-10 h-10 rounded-full object-cover border-2 border-indigo-500"
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
-                }}
-              />
-            ) : (
-              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-white font-semibold">
-                {otherUser?.name?.charAt(0).toUpperCase() || "U"}
-              </div>
-            )}
-
+  return (
+    <div className="flex flex-col h-screen bg-[#0f0f0f] text-gray-200">
+      {/* Header */}
+      <div className="bg-[#161616] border-b border-[#2a2a2a] px-6 py-4 shadow-xl z-10">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              {otherUser?.profile_image ? (
+                <img src={otherUser.profile_image} className="w-12 h-12 rounded-full object-cover border-2 border-[#d4af37]/50" alt="User" />
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#d4af37] to-[#aa8a2e] flex items-center justify-center text-black font-bold">
+                  {otherUser?.name?.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-[#161616]"></div>
+            </div>
             <div>
-              <h2 className="font-semibold text-gray-800">
-                {chatName || otherUser?.name || "Chat"}
-              </h2>
-              <p className="text-xs text-green-500">● Online</p>
+              <h2 className="font-bold text-white tracking-wide">{chatName || otherUser?.name || "Chat"}</h2>
+              <p className="text-[10px] text-[#d4af37] uppercase tracking-widest font-semibold">Active Session</p>
             </div>
           </div>
 
-          <button
-            onClick={startVideoCall}
-            className="p-2 rounded-full bg-green-500 hover:bg-green-600 text-white shadow-md transition"
-            title="Start Video Call"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M4 6h8a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2z"
-              />
-            </svg>
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={startVideoCall} className="p-3 rounded-full bg-[#1e1e1e] hover:bg-[#d4af37] hover:text-black text-[#d4af37] transition-all duration-300 border border-[#2a2a2a]">
+              <Video size={20} />
+            </button>
+            <button className="p-3 rounded-full bg-[#1e1e1e] hover:bg-[#2a2a2a] text-gray-400 border border-[#2a2a2a]">
+              <MoreVertical size={20} />
+            </button>
+          </div>
         </div>
       </div>
-   
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-gray-400">
-            <svg
-              className="w-16 h-16 mb-3"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-              />
-            </svg>
-            <p className="text-sm">No messages yet. Start the conversation!</p>
-          </div>
-        ) : (
-          messages.map((msg, idx) => {
-            const isCurrentUser = msg.sender === currentUserName || msg.sender_name === currentUserName;
-            
-        
-            if (msg.message_type === 'call' || msg.message_type === 'call_missed') {
-              const isMissed = msg.message_type === 'call_missed';
-              return (
-                <div key={idx} className="flex justify-center my-3">
-                  <div className={`px-4 py-2 rounded-xl text-sm flex items-center gap-2 ${
-                    isMissed ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-green-50 text-green-600 border border-green-200'
-                  }`}>
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
-                    </svg>
-                    <span className="font-medium">{msg.content}</span>
-                  </div>
-                </div>
-              );
-            }
-            
-           
+
+      {/* Messages Scroll Area */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] scrollbar-thin scrollbar-thumb-[#2a2a2a]">
+        {messages.map((msg, idx) => {
+          const isCurrentUser = msg.sender === currentUserName || msg.sender_name === currentUserName || msg.sender_id === currentUserId;
+          
+          // --- Meaningful Call UI ---
+          if (msg.message_type === 'call' || msg.message_type === 'call_missed') {
+            const isMissed = msg.message_type === 'call_missed';
             return (
-              <div
-                key={idx}
-                className={`flex ${isCurrentUser ? "justify-end" : "justify-start"} animate-fadeIn`}
-              >
-                <div
-                  className={`px-4 py-2.5 rounded-2xl text-sm max-w-xs md:max-w-md break-words shadow-sm ${
-                    isCurrentUser
-                      ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-br-none"
-                      : "bg-white text-gray-800 rounded-bl-none border border-gray-200"
-                  }`}
-                >
-                  {msg.message || msg.content}
-                  <div className={`text-xs mt-1 ${isCurrentUser ? "text-indigo-100" : "text-gray-400"}`}>
-                    {new Date(msg.timestamp).toLocaleTimeString([], { 
-                      hour: '2-digit', 
-                      minute: '2-digit' 
-                    })}
+              <div key={idx} className="flex justify-center my-6 animate-in zoom-in-95 duration-300">
+                <div className={`flex flex-col items-center gap-3 px-8 py-5 rounded-3xl border bg-[#161616] shadow-2xl min-w-[240px] ${
+                  isMissed ? "border-red-500/20" : "border-[#d4af37]/20"
+                }`}>
+                  <div className={`p-4 rounded-full ${isMissed ? "bg-red-500/10 text-red-500" : "bg-[#d4af37]/10 text-[#d4af37]"}`}>
+                    {isMissed ? <PhoneMissed size={28} /> : <Video size={28} className={!isCurrentUser ? "animate-pulse" : ""} />}
                   </div>
+                  
+                  <div className="text-center">
+                    <h4 className={`text-sm font-bold uppercase tracking-widest ${isMissed ? "text-red-500" : "text-[#d4af37]"}`}>
+                      {isMissed ? "Missed Call" : "Video Call"}
+                    </h4>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {isCurrentUser ? "You started the call" : `${chatName || "User"} called you`}
+                    </p>
+                  </div>
+
+                  {isMissed && !isCurrentUser && (
+                    <button 
+                      onClick={startVideoCall}
+                      className="mt-2 px-6 py-2 bg-red-500 hover:bg-red-600 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-red-500/20"
+                    >
+                      Call Back
+                    </button>
+                  )}
+
+                  <span className="text-[9px] text-gray-600 font-bold mt-2">
+                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
                 </div>
               </div>
             );
-          })
-        )}
+          }
+
+          // --- Standard Message UI ---
+          return (
+            <div key={idx} className={`flex ${isCurrentUser ? "justify-end" : "justify-start"} animate-in fade-in slide-in-from-bottom-2`}>
+              <div className={`max-w-[75%] px-5 py-3 rounded-2xl shadow-lg relative ${
+                isCurrentUser 
+                  ? "bg-gradient-to-br from-[#d4af37] to-[#aa8a2e] text-black rounded-tr-none font-medium" 
+                  : "bg-[#1e1e1e] text-gray-200 border border-[#2a2a2a] rounded-tl-none"
+              }`}>
+                <p className="text-sm leading-relaxed">{msg.message || msg.content}</p>
+                <div className={`flex items-center gap-1 mt-1 opacity-70 ${isCurrentUser ? "text-black/70" : "text-[#d4af37]/70"}`}>
+                  <span className="text-[9px] font-bold">
+                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
         <div ref={messagesEndRef} />
       </div>
 
-   
-      <div className="bg-white border-t border-gray-200 p-4 shadow-lg">
-        <div className="flex items-center gap-2 max-w-4xl mx-auto">
+      {/* Input Area */}
+      <div className="p-5 bg-[#161616] border-t border-[#2a2a2a]">
+        <div className="max-w-5xl mx-auto flex items-center gap-3 bg-[#0a0a0a] p-2 rounded-2xl border border-[#2a2a2a]">
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-            placeholder="Type your message..."
-            className="flex-1 p-3 border border-gray-300 rounded-full focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all duration-200"
+            placeholder="Write a message..."
+            className="flex-1 bg-transparent px-4 py-2 text-sm text-white focus:outline-none placeholder:text-gray-600"
           />
           <button
             onClick={sendMessage}
             disabled={!input.trim()}
-            className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white p-3 rounded-full hover:from-indigo-600 hover:to-purple-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg"
+            className="bg-[#d4af37] text-black p-3 rounded-xl hover:bg-[#f3cf58] disabled:opacity-30 transition-all shadow-[0_0_15px_rgba(212,175,55,0.2)]"
           >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-              />
-            </svg>
+            <Send size={18} />
           </button>
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-fadeIn {
-          animation: fadeIn 0.3s ease-out;
-        }
-      `}</style>
     </div>
   );
 }

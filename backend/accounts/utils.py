@@ -1,40 +1,44 @@
-import random
-import os
-from django.core.cache import cache
-from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail
+from django.core.mail import send_mail
 from django.conf import settings
-
-
+import threading
+import random
+from django.core.cache import cache
 
 def send_otp_to_email(email, email_subject):
     otp = str(random.randint(1000, 9999))
-    cache.set(email, otp, timeout=300)
+    safe_email = email.lower().strip()
+    cache.set(safe_email, otp, timeout=300)
 
+    # Use a thread so the user doesn't wait for the SMTP connection
+    thread = threading.Thread(
+        target=email_worker, 
+        args=(email, email_subject, otp)
+    )
+    thread.start()
+    return True
+
+def email_worker(email, email_subject, otp):
     try:
-        message = Mail(
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            to_emails=email,
-            subject=f"OTP email from House of Anbu! for {email_subject}",
-            html_content=f"""
-                <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px;">
-                    <h2 style="color: #6366f1;">House of Anbu</h2>
-                    <p style="font-size: 16px;">Your OTP for {email_subject} is:</p>
-                    <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
-                        <h1 style="color: #6366f1; font-size: 36px; letter-spacing: 8px; margin: 0;">{otp}</h1>
-                    </div>
-                    <p style="color: #666; font-size: 14px;">This code will expire in 5 minutes.</p>
-                    <p style="color: #999; font-size: 12px; margin-top: 30px;">
-                        If you didn't request this code, please ignore this email.
-                    </p>
-                </div>
-            """
+        subject = f"House of Anbu - {email_subject} Verification"
+        message = f"Your OTP is: {otp}. It expires in 5 minutes."
+        
+        # HTML version of your email
+        html_message = f"""
+            <div style="font-family: sans-serif; text-align: center;">
+                <h2>House of Anbu</h2>
+                <p>Use the code below to {email_subject}:</p>
+                <h1 style="color: #4f46e5; letter-spacing: 5px;">{otp}</h1>
+            </div>
+        """
+
+        send_mail(
+            subject,
+            message,
+            settings.DEFAULT_FROM_EMAIL,
+            [email],
+            fail_silently=False,
+            html_message=html_message,
         )
-
-        sg = SendGridAPIClient(settings.SENDGRID_API_KEY)
-        response = sg.send(message)
-
-        return True
-
+        print(f"SMTP Success: OTP sent to {email}")
     except Exception as e:
-        raise Exception(f"Failed to send OTP email: {str(e)}")
+        print(f"SMTP Error: {str(e)}")

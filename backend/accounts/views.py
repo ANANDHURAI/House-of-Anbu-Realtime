@@ -50,7 +50,6 @@ class VerifyOTPAPIView(APIView):
             refresh = RefreshToken.for_user(user)
             
             # Cleanup cache
-            cache.delete(email)
             cache.delete(f"user_data_{email}")
 
             return Response({
@@ -58,6 +57,7 @@ class VerifyOTPAPIView(APIView):
                 "refresh": str(refresh),
                 "access": str(refresh.access_token),
                 "user": {
+                    "id": user.id,
                     "email": user.email,
                     "name": user.name,
                     "phone": user.phone
@@ -67,11 +67,11 @@ class VerifyOTPAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+    
 class LoginRequestAPIView(APIView):
     """
     Step 1 of Login — Send OTP to registered email
     """
-
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -85,10 +85,13 @@ class LoginRequestAPIView(APIView):
             except UserAccount.DoesNotExist:
                 return Response({"error": "User not found. Please register first."}, status=status.HTTP_404_NOT_FOUND)
             
-            # Send OTP
-            send_otp_to_email(email, email_subject="Login")
-            
-            return Response({"message": "OTP sent to your email!"}, status=status.HTTP_200_OK)
+            # Try to Send OTP and catch any errors gracefully
+            try:
+                send_otp_to_email(email, email_subject="Login")
+                return Response({"message": "OTP sent to your email!"}, status=status.HTTP_200_OK)
+            except Exception as e:
+                # This will tell you EXACTLY why SendGrid is failing!
+                return Response({"error": f"Failed to send email: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -120,6 +123,7 @@ class LoginVerifyOTPAPIView(APIView):
                 "refresh": str(refresh),
                 "access": str(refresh.access_token),
                 "user": {
+                    "id": user.id,
                     "email": user.email,
                     "name": user.name,
                     "phone": user.phone

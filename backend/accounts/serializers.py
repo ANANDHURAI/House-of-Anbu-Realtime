@@ -13,19 +13,30 @@ class RegistrationDataSerializer(serializers.Serializer):
         return value
 
 
+    
+
 class OTPVerifySerializer(serializers.Serializer):
     email = serializers.EmailField()
     otp = serializers.CharField(max_length=4)
 
     def validate(self, attrs):
-        email = attrs.get('email')
-        otp = attrs.get('otp')
+        # 1. Normalize the inputs to perfectly match the cache
+        email = attrs.get('email').lower().strip()
+        otp = str(attrs.get('otp')).strip()
+        
+        # 2. Get the stored OTP
         stored_otp = cache.get(email)
 
+        
+        print(f"\n👉 DEBUG: Email='{email}', Received OTP='{otp}', Stored OTP='{stored_otp}'\n")
+
+       
         if not stored_otp:
-            raise serializers.ValidationError("OTP expired or not found.")
-        if otp != stored_otp:
-            raise serializers.ValidationError("Invalid OTP.")
+            raise serializers.ValidationError({"error": "OTP expired or not found."})
+            
+        if otp != str(stored_otp).strip():
+            raise serializers.ValidationError({"error": "Invalid OTP."})
+            
         return attrs
 
 

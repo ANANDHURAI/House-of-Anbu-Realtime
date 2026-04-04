@@ -8,42 +8,45 @@ from accounts.models import UserAccount
 from .serializers import MessageSerializer , ChatSerializer
 from django.utils import timezone
 
-class SearchingView(APIView):
 
+
+class SearchingView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
         query = request.data.get('query', '').strip()
+        if not query:
+            return Response({"results": []}, status=status.HTTP_200_OK)
 
         users = UserAccount.objects.filter(
             Q(name__icontains=query) |
-            Q(email__icontains=query) |
-            Q(phone__icontains=query)
-        ).exclude(id=request.user.id)
+            Q(email__icontains=query)
+        ).exclude(id=request.user.id)[:10] 
 
         results = [
             {
                 "id": user.id,
                 "name": user.name,
                 "email": user.email,
-                "phone": user.phone,
-                "about_me": user.about_me,
                 "profile_image": request.build_absolute_uri(user.profile_image.url) if user.profile_image else None,
             }
             for user in users
         ]
-
         return Response({"results": results}, status=status.HTTP_200_OK)
+
+
+
 
 class GetOrCreateChatView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
         other_user_id = request.data.get("user_id")
-        if not other_user_id:
-            return Response({"error": "user_id is required"}, status=status.HTTP_400_BAD_REQUEST)
-
         user = request.user
+
+        # BLOCK SELF-CHAT
+        if str(user.id) == str(other_user_id):
+            return Response({"error": "You cannot chat with yourself."}, status=status.HTTP_400_BAD_REQUEST)
 
         chat = Chat.objects.filter(
             Q(user1=user, user2_id=other_user_id) |
@@ -55,6 +58,8 @@ class GetOrCreateChatView(APIView):
 
         return Response({"chat_id": chat.id}, status=status.HTTP_200_OK)
 
+
+
 class ChatMessagesView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -64,14 +69,23 @@ class ChatMessagesView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+
+
+    
 class ChatListView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         user = request.user
-        chats = Chat.objects.filter(Q(user1=user) | Q(user2=user)).order_by('-updated_at')
+        chats = Chat.objects.filter(
+            Q(user1=user) | Q(user2=user)
+        ).select_related('user1', 'user2').order_by('-updated_at')
+        
         serializer = ChatSerializer(chats, many=True, context={'request': request})
         return Response(serializer.data)
+
+
+
 
 
 class MarkMessagesAsReadView(APIView):

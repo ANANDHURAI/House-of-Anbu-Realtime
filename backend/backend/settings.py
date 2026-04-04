@@ -1,19 +1,18 @@
-
 import os
 from pathlib import Path
 from datetime import timedelta
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
 
-from dotenv import load_dotenv 
-load_dotenv()
+# Define BASE_DIR 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+from dotenv import load_dotenv 
+load_dotenv(BASE_DIR / '.env', override=True)
 SECRET_KEY = os.getenv("SECRET_KEY")
 
-
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = [
     '127.0.0.1',
@@ -203,13 +202,15 @@ SIMPLE_JWT = {
 
 
 # Email setup - GMAIL
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-# EMAIL_HOST = 'smtp.gmail.com'
-# EMAIL_PORT = 587
-# EMAIL_USE_TLS = True
-# EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
-# EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
-# DEFAULT_FROM_EMAIL = os.getenv("EMAIL_HOST_USER")
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+DEFAULT_FROM_EMAIL = os.getenv("EMAIL_HOST_USER")
 
-SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY")
-DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL")
+# SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY")
+# DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL")
+
+# RESEND_API_KEY = os.environ.get("DEFAULT_FROM_EMAIL")

@@ -1,7 +1,6 @@
-"use client"
-
 import { useState } from "react"
 import AxiosInstance from "../../api/AxiosInterCepters"
+import { User, Phone, Mail, Lock, ArrowRight, Loader2, Check } from "lucide-react"
 
 function RegisterPage() {
   const [step, setStep] = useState(1)
@@ -22,12 +21,8 @@ function RegisterPage() {
   const handleNext = async (e) => {
     e.preventDefault()
     setError("")
-
-    if (step === 3) {
-      await sendOTP()
-    } else {
-      setStep(step + 1)
-    }
+    if (step === 3) await sendOTP()
+    else setStep(step + 1)
   }
 
   const sendOTP = async () => {
@@ -38,16 +33,9 @@ function RegisterPage() {
         phone: userData.phone,
         email: userData.email,
       })
-
-      if (res.status === 200) {
-        setStep(4)
-      }
+      if (res.status === 200) setStep(4)
     } catch (err) {
-      if (err.response?.data?.email) {
-        setError("Email already registered. Please login instead.")
-      } else {
-        setError("Failed to send OTP. Try again.")
-      }
+      setError(err.response?.data?.email ? "Email already registered." : "Failed to send OTP.")
     } finally {
       setLoading(false)
     }
@@ -55,21 +43,16 @@ function RegisterPage() {
 
   const verifyOTP = async (e) => {
     e.preventDefault()
-    setError("")
     setLoading(true)
-
     try {
       const res = await AxiosInstance.post("/auth/verify-otp/", {
         email: userData.email,
         otp: userData.otp,
       })
-
       if (res.status === 201) {
         localStorage.setItem("access", res.data.access)
         localStorage.setItem("refresh", res.data.refresh)
         localStorage.setItem("user", JSON.stringify(res.data.user))
-
-        alert("Account created successfully!")
         window.location.href = "/home"
       }
     } catch {
@@ -79,269 +62,107 @@ function RegisterPage() {
     }
   }
 
-  const stepLabels = ["Name", "Phone", "Email", "Verify"]
-  const stepIcons = ["👤", "📱", "✉️", "🔐"]
+  const steps = [
+    { icon: <User className="w-4 h-4"/>, label: "Name" },
+    { icon: <Phone className="w-4 h-4"/>, label: "Phone" },
+    { icon: <Mail className="w-4 h-4"/>, label: "Email" },
+    { icon: <Lock className="w-4 h-4"/>, label: "Verify" }
+  ]
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl animate-pulse"></div>
-      <div className="absolute bottom-0 left-0 w-96 h-96 bg-teal-500/20 rounded-full blur-3xl animate-pulse animation-delay-2000"></div>
+    <div className="min-h-screen flex items-center justify-center bg-[#0a0f1d] relative overflow-hidden font-sans">
+      {/* Background Blobs */}
+      <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-indigo-600/20 rounded-full blur-[120px] animate-pulse"></div>
+      <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-teal-600/20 rounded-full blur-[120px] animate-pulse"></div>
 
-      <div className="relative z-10 w-full max-w-md">
-        <div className="bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl rounded-3xl p-8 animate-fade-in">
-
-          <h2
-            className="text-center text-3xl font-bold bg-gradient-to-r from-indigo-400 via-teal-400 to-blue-400 bg-clip-text text-transparent mb-2 animate-fade-in"
-            style={{ animationDelay: "0.1s" }}
-          >
-            House of Anbu
+      <div className="relative z-10 w-full max-w-md px-6">
+        <div className="bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl rounded-[2.5rem] p-8 md:p-10">
+          
+          <h2 className="text-center text-3xl font-bold bg-gradient-to-r from-indigo-400 to-teal-400 bg-clip-text text-transparent mb-10">
+            Create Account
           </h2>
-          <p className="text-center text-sm text-gray-400 mb-8 animate-fade-in" style={{ animationDelay: "0.2s" }}>
-            Create your account
-          </p>
 
-          <div className="mb-8 animate-fade-in" style={{ animationDelay: "0.3s" }}>
-            <div className="flex justify-between items-center gap-2">
-              {stepLabels.map((label, idx) => (
-                <div key={idx} className="flex flex-col items-center gap-2 flex-1">
-                  <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center text-lg font-semibold transition-all duration-500 ${
-                      step > idx
-                        ? "bg-gradient-to-r from-green-500 to-teal-500 text-white"
-                        : step === idx + 1
-                          ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white scale-110"
-                          : "bg-white/10 border border-white/20 text-gray-400"
-                    }`}
-                  >
-                    {step > idx ? "✓" : stepIcons[idx]}
-                  </div>
+          {/* New Modern Stepper */}
+          <div className="flex justify-between items-center mb-10 px-2">
+            {steps.map((s, idx) => (
+              <div key={idx} className="flex flex-col items-center gap-2">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 border ${
+                  step > idx + 1 ? "bg-teal-500 border-teal-500 text-white" :
+                  step === idx + 1 ? "bg-indigo-500 border-indigo-500 text-white scale-110 shadow-lg shadow-indigo-500/20" :
+                  "bg-slate-900 border-white/10 text-slate-500"
+                }`}>
+                  {step > idx + 1 ? <Check className="w-5 h-5"/> : s.icon}
                 </div>
-              ))}
-            </div>
-            <div className="flex gap-1 mt-3">
-              {stepLabels.map((_, idx) => (
-                <div
-                  key={idx}
-                  className={`flex-1 h-1 rounded-full transition-all duration-500 ${
-                    step > idx ? "bg-gradient-to-r from-indigo-500 to-purple-500" : "bg-white/10"
-                  }`}
-                ></div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
 
-          {error && (
-            <div className="mb-4 p-4 bg-red-500/20 border border-red-500/50 rounded-xl text-red-200 text-sm animate-slide-down">
-              {error}
-            </div>
-          )}
+          {error && <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-400 text-xs text-center">{error}</div>}
 
-          <div className="relative h-64 overflow-hidden">
-            {step === 1 && (
-              <form onSubmit={handleNext} className="space-y-6 animate-slide-in">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-200 mb-3">What's your name?</label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={userData.name}
-                    onChange={handleChange}
-                    placeholder="John Doe"
-                    required
-                    className="w-full bg-white/10 border border-white/20 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-white placeholder-gray-400 transition-all duration-300 hover:border-white/40"
-                  />
+          <div className="min-h-[220px]">
+            <form onSubmit={step === 4 ? verifyOTP : handleNext} className="space-y-6 animate-slide-up">
+              {step === 1 && (
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
+                  <input type="text" name="name" value={userData.name} onChange={handleChange} placeholder="John Doe" required className="input-field" />
                 </div>
-                <button
-                  type="submit"
-                  className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
-                >
-                  Next <span>→</span>
-                </button>
-              </form>
-            )}
+              )}
+              {step === 2 && (
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest ml-1">Phone Number</label>
+                  <input type="tel" name="phone" value={userData.phone} onChange={handleChange} placeholder="+1 (555) 000-0000" required className="input-field" />
+                </div>
+              )}
+              {step === 3 && (
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
+                  <input type="email" name="email" value={userData.email} onChange={handleChange} placeholder="name@example.com" required className="input-field" />
+                </div>
+              )}
+              {step === 4 && (
+                <div className="space-y-2 text-center">
+                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Enter 4-Digit OTP</label>
+                  <input type="text" name="otp" value={userData.otp} onChange={handleChange} placeholder="0000" maxLength="4" required className="input-field text-center text-2xl tracking-[0.5em]" />
+                </div>
+              )}
 
-            {step === 2 && (
-              <form onSubmit={handleNext} className="space-y-6 animate-slide-in">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-200 mb-3">Enter your phone number</label>
-                  <input
-                    type="text"
-                    name="phone"
-                    value={userData.phone}
-                    onChange={handleChange}
-                    placeholder="+1 (555) 000-0000"
-                    required
-                    className="w-full bg-white/10 border border-white/20 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-white placeholder-gray-400 transition-all duration-300 hover:border-white/40"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="w-full bg-gradient-to-r from-teal-600 to-indigo-600 text-white py-3 rounded-xl font-semibold hover:from-teal-700 hover:to-indigo-700 transition-all duration-300 transform hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
-                >
-                  Next <span>→</span>
-                </button>
-              </form>
-            )}
-
-            {step === 3 && (
-              <form onSubmit={handleNext} className="space-y-6 animate-slide-in">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-200 mb-3">Enter your email address</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={userData.email}
-                    onChange={handleChange}
-                    placeholder="your@email.com"
-                    required
-                    className="w-full bg-white/10 border border-white/20 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400 transition-all duration-300 hover:border-white/40"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-cyan-700 disabled:opacity-50 transition-all duration-300 transform hover:scale-105 active:scale-95 disabled:hover:scale-100 flex items-center justify-center gap-2"
-                >
-                  {loading ? (
-                    <>
-                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
-                      </svg>
-                      Sending OTP...
-                    </>
-                  ) : (
-                    <>
-                      Send OTP <span>→</span>
-                    </>
-                  )}
-                </button>
-              </form>
-            )}
-
-            {step === 4 && (
-              <form onSubmit={verifyOTP} className="space-y-6 animate-slide-in">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-200 mb-3">Enter 4-digit OTP</label>
-                  <input
-                    type="text"
-                    name="otp"
-                    value={userData.otp}
-                    onChange={handleChange}
-                    placeholder="0000"
-                    maxLength="4"
-                    required
-                    className="w-full bg-white/10 border border-white/20 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400 text-center text-2xl tracking-widest transition-all duration-300 hover:border-white/40 font-semibold"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 transition-all duration-300 transform hover:scale-105 active:scale-95 disabled:hover:scale-100 flex items-center justify-center gap-2"
-                >
-                  {loading ? (
-                    <>
-                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
-                      </svg>
-                      Verifying...
-                    </>
-                  ) : (
-                    <>
-                      Verify & Create Account <span>✓</span>
-                    </>
-                  )}
-                </button>
-              </form>
-            )}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-indigo-600 to-teal-600 text-white py-4 rounded-2xl font-bold hover:opacity-90 transition-all active:scale-95 flex items-center justify-center gap-2 shadow-xl shadow-indigo-900/20"
+              >
+                {loading ? <Loader2 className="animate-spin w-5 h-5" /> : step === 3 ? "Send Code" : step === 4 ? "Create Account" : "Next Step"}
+                {!loading && step < 3 && <ArrowRight className="w-4 h-4" />}
+              </button>
+            </form>
           </div>
 
-          <p className="text-center text-sm text-gray-400 mt-8 animate-fade-in" style={{ animationDelay: "0.4s" }}>
-            Already have an account?{" "}
-            <a
-              href="/login"
-              className="text-transparent bg-gradient-to-r from-indigo-400 to-teal-400 bg-clip-text font-semibold hover:from-indigo-300 hover:to-teal-300 transition-all duration-300 hover:underline"
-            >
-              Login
-            </a>
+          <p className="text-center text-sm text-slate-500 mt-10">
+            Already have an account? <a href="/login" className="text-indigo-400 font-semibold hover:underline">Login</a>
           </p>
         </div>
       </div>
 
       <style>{`
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+        .input-field {
+          width: 100%;
+          background: rgba(15, 23, 42, 0.5);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          padding: 1rem 1.25rem;
+          border-radius: 1rem;
+          color: white;
+          transition: all 0.3s;
         }
-
-        @keyframes slideIn {
-          from {
-            opacity: 0;
-            transform: translateX(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
+        .input-field:focus {
+          outline: none;
+          border-color: rgba(99, 102, 241, 0.5);
+          box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
         }
-
-        @keyframes slideDown {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
         }
-
-        .animate-fade-in {
-          animation: fadeIn 0.6s ease-out forwards;
-          opacity: 0;
-        }
-
-        .animate-slide-in {
-          animation: slideIn 0.5s ease-out forwards;
-          opacity: 0;
-        }
-
-        .animate-slide-down {
-          animation: slideDown 0.3s ease-out forwards;
-        }
-
-        .animation-delay-2000 {
-          animation-delay: 2s;
-        }
+        .animate-slide-up { animation: slideUp 0.5s ease-out forwards; }
       `}</style>
     </div>
   )

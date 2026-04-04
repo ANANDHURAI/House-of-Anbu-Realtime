@@ -49,7 +49,7 @@ class StartCallView(APIView):
 
        
         channel_layer = get_channel_layer()
-        receiver_group = f'call_notifications_{receiver.id}'
+        receiver_group = f'notifications_{receiver.id}'
         
         async_to_sync(channel_layer.group_send)(
             receiver_group,
@@ -78,7 +78,6 @@ class UpdateCallStatusView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, call_id):
-    
         from django.utils import timezone
         
         call = Call.objects.get(id=call_id)
@@ -103,7 +102,7 @@ class UpdateCallStatusView(APIView):
         if status in ['ended', 'rejected', 'cancelled']:
             other_user = call.receiver if call.caller == request.user else call.caller
             channel_layer = get_channel_layer()
-            receiver_group = f'call_notifications_{other_user.id}'
+            receiver_group = f'notifications_{other_user.id}'
             
             message = None
             notification_type = 'call_ended'
@@ -134,17 +133,17 @@ class UpdateCallStatusView(APIView):
         
         if call.chat:
             message_type = 'call_missed' if call.is_missed else 'call'
-            content = self._get_call_message(call, request.user)
             
-       
-            if content:
-                Message.objects.create(
-                    chat=call.chat,
-                    sender=request.user,
-                    content=content,
-                    message_type=message_type,
-                    call=call
-                )
+            is_read_status = True if status != 'cancelled' else False
+            
+            Message.objects.create(
+                chat=call.chat,
+                sender=request.user,
+                content="", # We leave this blank! Serializer handles the text now.
+                message_type=message_type,
+                call=call,
+                is_read=is_read_status
+            )
         
         return Response(CallSerializer(call).data)
     
@@ -174,9 +173,10 @@ class CallHistoryView(APIView):
     permission_classes = [IsAuthenticated]
     
     def get(self, request):
+        
         calls = Call.objects.filter(
             django_models.Q(caller=request.user) | django_models.Q(receiver=request.user)
-        ).select_related('caller', 'receiver').order_by('-started_at')
+        ).exclude(caller=request.user, receiver=request.user).select_related('caller', 'receiver').order_by('-started_at')
         
         serializer = CallSerializer(calls, many=True, context={'request': request})
         return Response(serializer.data)
