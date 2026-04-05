@@ -199,6 +199,9 @@ SIMPLE_JWT = {
 }
 
 
+import resend
+
+RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 
 
 # Email setup - GMAIL
@@ -215,4 +218,3 @@ DEFAULT_FROM_EMAIL = os.getenv("EMAIL_HOST_USER")
 # SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY")
 # DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL")
 
-# RESEND_API_KEY = os.environ.get("DEFAULT_FROM_EMAIL")
