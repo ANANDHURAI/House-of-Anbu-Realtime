@@ -6,6 +6,8 @@ db.sqlite3
 
 # Environment variables
 .env
+backend/.env
+frontend/.env
 
 # Media & static files
 /media/
@@ -16,6 +18,7 @@ static/
 venv/
 env/
 *.log
+
 
 # IDE/editor settings
 .vscode/
