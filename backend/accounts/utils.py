@@ -4,9 +4,9 @@ import random
 import threading
 from django.core.cache import cache
 from django.conf import settings
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
 
-# Initialize Resend with your API Key
-resend.api_key = os.getenv("RESEND_API_KEY")
 
 def send_otp_to_email(email, email_subject):
     otp = str(random.randint(1000, 9999))
@@ -25,7 +25,6 @@ def email_worker(email, email_subject, otp):
     try:
         subject = f"House of Anbu - {email_subject} Verification"
         
-        # HTML version for Resend
         html_content = f"""
             <div style="font-family: sans-serif; text-align: center; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
                 <h2 style="color: #333;">House of Anbu</h2>
@@ -35,16 +34,19 @@ def email_worker(email, email_subject, otp):
             </div>
         """
 
-        params = {
-            "from": os.getenv("DEFAULT_FROM_EMAIL", "onboarding@resend.dev"),
-            "to": [email],
-            "subject": subject,
-            "html": html_content,
-        }
+        # Create the SendGrid Mail object
+        message = Mail(
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to_emails=email,
+            subject=subject,
+            html_content=html_content
+        )
 
-        # Sending via Resend API
-        result = resend.Emails.send(params)
-        print(f"Resend Success: OTP sent to {email}. ID: {result['id']}")
+        # Initialize the client and send
+        sg = SendGridAPIClient(settings.SENDGRID_API_KEY)
+        response = sg.send(message)
+        
+        print(f"SendGrid Success: Status Code {response.status_code}")
         
     except Exception as e:
-        print(f"Resend API Error: {str(e)}")
+        print(f"SendGrid Error: {str(e)}")
