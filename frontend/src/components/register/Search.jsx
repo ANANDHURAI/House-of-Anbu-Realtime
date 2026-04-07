@@ -63,7 +63,7 @@ function Search({ onSelectChat }) {
 
   return (
     <div className="relative p-6 bg-[#0a0a0a] border-b border-[#1a1a1a]">
-      {/* Search Input Container */}
+      
       <div className="relative group">
         <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-[#D4AF37] transition-colors z-10">
           {loading ? (
@@ -83,7 +83,7 @@ function Search({ onSelectChat }) {
         />
       </div>
 
-      {/* Results Dropdown */}
+     
       {isOpen && (
         <div className="absolute left-6 right-6 top-[calc(100%-10px)] bg-[#161616] border border-[#2a2a2a] rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] z-[100] animate-in slide-in-from-top-2 overflow-hidden">
           

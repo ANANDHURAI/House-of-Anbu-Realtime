@@ -4,7 +4,6 @@ from datetime import timedelta
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
 
-# Define BASE_DIR 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 

@@ -2,7 +2,7 @@ import AxiosInstance from "../../../api/AxiosInterCepters";
 import { useEffect, useState } from "react";
 import { MessageSquare, ChevronRight, User } from "lucide-react";
 
-function ChatList({ onSelectChat, activeChatId }) { // Added activeChatId for highlight
+function ChatList({ onSelectChat, activeChatId }) {
   const [chats, setChats] = useState([]);
   const [selectedProfile, setSelectedProfile] = useState(null);
 
@@ -51,7 +51,7 @@ function ChatList({ onSelectChat, activeChatId }) { // Added activeChatId for hi
                   animation: `slideIn 0.4s ease-out ${index * 0.05}s both`
                 }}
               >
-                {/* Active Indicator Bar */}
+               
                 {isActive && (
                   <div className="absolute left-0 top-1/4 bottom-1/4 w-1 bg-[#d4af37] rounded-r-full" />
                 )}
@@ -112,7 +112,6 @@ function ChatList({ onSelectChat, activeChatId }) { // Added activeChatId for hi
                     </div>
                   </div>
 
-                  {/* Desktop Only Chevron */}
                   <ChevronRight size={14} className={`hidden md:block transition-all duration-300 ${
                     isActive ? 'text-[#d4af37] translate-x-0' : 'text-gray-700 opacity-0 group-hover:opacity-100 group-hover:translate-x-1'
                   }`} />
@@ -123,7 +122,7 @@ function ChatList({ onSelectChat, activeChatId }) { // Added activeChatId for hi
         </div>
       )}
 
-      {/* Luxury Profile Modal */}
+     
       {selectedProfile && (
         <div 
           className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[100] p-4 animate-in fade-in duration-300"
@@ -133,7 +132,7 @@ function ChatList({ onSelectChat, activeChatId }) { // Added activeChatId for hi
             className="bg-[#121212] border border-[#d4af37]/30 rounded-[2.5rem] p-8 max-w-sm w-full shadow-[0_0_50px_rgba(0,0,0,0.5)] relative overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Background Texture for Modal */}
+           
             <div className="absolute inset-0 opacity-5 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')]" />
 
             <div className="flex flex-col items-center relative z-10">

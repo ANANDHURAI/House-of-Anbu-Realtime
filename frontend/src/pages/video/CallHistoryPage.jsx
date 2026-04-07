@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AxiosInstance from '../../api/AxiosInterCepters';
-import IncomingCallModal from '../video/IncomingCallModal'; // Adjust path if needed
+import IncomingCallModal from '../video/IncomingCallModal';
 import { WS_URL } from "../../config/api";
 
 function CallHistoryPage() {
@@ -11,12 +11,11 @@ function CallHistoryPage() {
   const navigate = useNavigate();
   const currentUser = JSON.parse(localStorage.getItem('user'));
 
-  // 1. Fetch History
+
   useEffect(() => {
     fetchCallHistory();
   }, []);
 
-  // 2. WebSocket Logic: Listen for calls while on this page
   useEffect(() => {
     const token = localStorage.getItem("access");
     if (!token) return;
@@ -118,7 +117,7 @@ function CallHistoryPage() {
     );
   }
 
-// CallHistoryPage.jsx - Visual Overhaul
+
 return (
   <div className="min-h-screen bg-[#050505] text-white">
     <div className="bg-[#121212] border-b border-[#1a1a1a] p-6 shadow-xl">

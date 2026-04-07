@@ -90,7 +90,7 @@ function ChatRoomPage({ chatId, chatName, currentUser, otherUser }) {
 
   return (
     <div className="flex flex-col h-screen bg-[#0f0f0f] text-gray-200">
-      {/* Header */}
+     
       <div className="bg-[#161616] border-b border-[#2a2a2a] px-6 py-4 shadow-xl z-10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -121,12 +121,12 @@ function ChatRoomPage({ chatId, chatName, currentUser, otherUser }) {
         </div>
       </div>
 
-      {/* Messages Scroll Area */}
+     
       <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] scrollbar-thin scrollbar-thumb-[#2a2a2a]">
         {messages.map((msg, idx) => {
           const isCurrentUser = msg.sender === currentUserName || msg.sender_name === currentUserName || msg.sender_id === currentUserId;
           
-          // --- Meaningful Call UI ---
+        
           if (msg.message_type === 'call' || msg.message_type === 'call_missed') {
             const isMissed = msg.message_type === 'call_missed';
             return (
@@ -164,7 +164,7 @@ function ChatRoomPage({ chatId, chatName, currentUser, otherUser }) {
             );
           }
 
-          // --- Standard Message UI ---
+          
           return (
             <div key={idx} className={`flex ${isCurrentUser ? "justify-end" : "justify-start"} animate-in fade-in slide-in-from-bottom-2`}>
               <div className={`max-w-[75%] px-5 py-3 rounded-2xl shadow-lg relative ${
@@ -185,7 +185,7 @@ function ChatRoomPage({ chatId, chatName, currentUser, otherUser }) {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Area */}
+      
       <div className="p-5 bg-[#161616] border-t border-[#2a2a2a]">
         <div className="max-w-5xl mx-auto flex items-center gap-3 bg-[#0a0a0a] p-2 rounded-2xl border border-[#2a2a2a]">
           <input

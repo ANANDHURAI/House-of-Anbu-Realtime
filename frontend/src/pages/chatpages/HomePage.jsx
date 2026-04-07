@@ -79,10 +79,10 @@ function HomePage() {
         />
       )}
 
-      {/* Sidebar */}
+      
       <div className={`${activeChat ? "hidden md:flex" : "flex"} flex-col w-full md:w-[380px] bg-[#0f0f0f] border-r border-[#2a2a2a] z-30 shadow-2xl`}>
         
-        {/* Profile Header */}
+       
         <div className="p-6 bg-gradient-to-b from-[#161616] to-[#0f0f0f]">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3 cursor-pointer group" onClick={() => setShowProfile(true)}>
@@ -112,7 +112,6 @@ function HomePage() {
           <Search onSelectChat={handleSelectChat} />
         </div>
 
-        {/* Chat List */}
         <div className="flex-1 overflow-y-auto custom-scrollbar">
           <div className="px-6 py-2">
             <h4 className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-bold mb-4">Direct Messages</h4>
@@ -121,7 +120,7 @@ function HomePage() {
         </div>
       </div>
 
-      {/* Main Content */}
+      
       <div className={`${activeChat ? "flex" : "hidden md:flex"} flex-1 flex-col relative`}>
         {activeChat ? (
           <ChatRoom chatId={activeChat} chatName={activeChatName} currentUser={user} otherUser={activeChatUser} />

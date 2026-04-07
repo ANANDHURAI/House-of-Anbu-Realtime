@@ -10,6 +10,8 @@ from rest_framework.permissions import AllowAny,IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser
 
 
+
+
 class RegisterAPIView(APIView):
     """
     Step 1 — Accept registration data and send OTP.
@@ -25,6 +27,8 @@ class RegisterAPIView(APIView):
             cache.set(f"user_data_{email}", serializer.validated_data, timeout=120)
             return Response({"message": "OTP sent to your email!"}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 
 
 class VerifyOTPAPIView(APIView):
@@ -67,6 +71,8 @@ class VerifyOTPAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+
+
     
 class LoginRequestAPIView(APIView):
     """
@@ -79,21 +85,20 @@ class LoginRequestAPIView(APIView):
         if serializer.is_valid():
             email = serializer.validated_data['email']
             
-            # Check if user exists
             try:
                 user = UserAccount.objects.get(email=email)
             except UserAccount.DoesNotExist:
                 return Response({"error": "User not found. Please register first."}, status=status.HTTP_404_NOT_FOUND)
             
-            # Try to Send OTP and catch any errors gracefully
             try:
                 send_otp_to_email(email, email_subject="Login")
                 return Response({"message": "OTP sent to your email!"}, status=status.HTTP_200_OK)
             except Exception as e:
-                # This will tell you EXACTLY why SendGrid is failing!
                 return Response({"error": f"Failed to send email: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 
 
 class LoginVerifyOTPAPIView(APIView):
@@ -131,6 +136,8 @@ class LoginVerifyOTPAPIView(APIView):
             }, status=status.HTTP_200_OK)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 
 
 class UserProfileAPIView(APIView): 
