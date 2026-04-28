@@ -130,14 +130,9 @@ class UpdateCallStatusView(APIView):
                 }
             )
 
-        
-        # In UpdateCallStatusView.post(), replace the message creation block at the bottom:
 
         if call.chat:
             message_type = 'call_missed' if call.is_missed else 'call'
-            
-            # FIX: Only create ONE message per call, only when the RECEIVER updates status
-            # (rejected) or the CALLER cancels. Avoid creating duplicate messages.
             should_create_message = False
             
             if status == 'rejected' and call.receiver == request.user:
