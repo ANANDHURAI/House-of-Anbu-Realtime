@@ -126,16 +126,29 @@ function ChatRoomPage({ chatId, chatName, currentUser, otherUser }) {
         {messages.map((msg, idx) => {
           const isCurrentUser = msg.sender === currentUserName || msg.sender_name === currentUserName || msg.sender_id === currentUserId;
           
-        
           if (msg.message_type === 'call' || msg.message_type === 'call_missed') {
             const isMissed = msg.message_type === 'call_missed';
+
+            // Determine if current user was the CALLER.
+            // msg.call_caller_id is the caller's id sent from the serializer/websocket.
+            // Fall back to checking otherUser: if otherUser is the caller, current user is the receiver.
+            const iAmTheCaller =
+              msg.call_caller_id !== undefined
+                ? msg.call_caller_id === currentUserId
+                : isCurrentUser; // fallback: sender of the message = the one who triggered (caller for cancelled, receiver for rejected)
+                                 // For a cleaner fallback, treat the message sender as caller only for non-missed calls.
+
+            const callLabel = iAmTheCaller
+              ? "You started the call"
+              : `${chatName || otherUser?.name || "User"} called you`;
+
             return (
               <div key={idx} className="flex justify-center my-6 animate-in zoom-in-95 duration-300">
                 <div className={`flex flex-col items-center gap-3 px-8 py-5 rounded-3xl border bg-[#161616] shadow-2xl min-w-[240px] ${
                   isMissed ? "border-red-500/20" : "border-[#d4af37]/20"
                 }`}>
                   <div className={`p-4 rounded-full ${isMissed ? "bg-red-500/10 text-red-500" : "bg-[#d4af37]/10 text-[#d4af37]"}`}>
-                    {isMissed ? <PhoneMissed size={28} /> : <Video size={28} className={!isCurrentUser ? "animate-pulse" : ""} />}
+                    {isMissed ? <PhoneMissed size={28} /> : <Video size={28} className={!iAmTheCaller ? "animate-pulse" : ""} />}
                   </div>
                   
                   <div className="text-center">
@@ -143,11 +156,11 @@ function ChatRoomPage({ chatId, chatName, currentUser, otherUser }) {
                       {isMissed ? "Missed Call" : "Video Call"}
                     </h4>
                     <p className="text-xs text-gray-400 mt-1">
-                      {isCurrentUser ? "You started the call" : `${chatName || "User"} called you`}
+                      {callLabel}
                     </p>
                   </div>
 
-                  {isMissed && !isCurrentUser && (
+                  {isMissed && !iAmTheCaller && (
                     <button 
                       onClick={startVideoCall}
                       className="mt-2 px-6 py-2 bg-red-500 hover:bg-red-600 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-red-500/20"
@@ -164,7 +177,6 @@ function ChatRoomPage({ chatId, chatName, currentUser, otherUser }) {
             );
           }
 
-          
           return (
             <div key={idx} className={`flex ${isCurrentUser ? "justify-end" : "justify-start"} animate-in fade-in slide-in-from-bottom-2`}>
               <div className={`max-w-[75%] px-5 py-3 rounded-2xl shadow-lg relative ${

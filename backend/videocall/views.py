@@ -131,19 +131,34 @@ class UpdateCallStatusView(APIView):
             )
 
         
+        # In UpdateCallStatusView.post(), replace the message creation block at the bottom:
+
         if call.chat:
             message_type = 'call_missed' if call.is_missed else 'call'
             
-            is_read_status = True if status != 'cancelled' else False
+            # FIX: Only create ONE message per call, only when the RECEIVER updates status
+            # (rejected) or the CALLER cancels. Avoid creating duplicate messages.
+            should_create_message = False
             
-            Message.objects.create(
-                chat=call.chat,
-                sender=request.user,
-                content="", # We leave this blank! Serializer handles the text now.
-                message_type=message_type,
-                call=call,
-                is_read=is_read_status
-            )
+            if status == 'rejected' and call.receiver == request.user:
+                # Receiver rejected → create message once
+                should_create_message = True
+            elif status == 'cancelled' and call.caller == request.user:
+                # Caller cancelled → create message once  
+                should_create_message = True
+            elif status == 'ended':
+                # Call ended normally → create message once
+                should_create_message = True
+
+            if should_create_message:
+                Message.objects.create(
+                    chat=call.chat,
+                    sender=request.user,
+                    content="",
+                    message_type=message_type,
+                    call=call,
+                    is_read=False if call.is_missed else True
+                )
         
         return Response(CallSerializer(call).data)
     
