@@ -11,7 +11,11 @@ class RegistrationDataSerializer(serializers.Serializer):
         if UserAccount.objects.filter(email=value).exists():
             raise serializers.ValidationError("Email already registered.")
         return value
-
+    
+    def validate_phone(self ,value):
+        if len(value ) != 10 and str(value).startswith(8):
+            raise serializers.ValidationError("phone number must be 10 numbers")
+        return value
 
     
 
