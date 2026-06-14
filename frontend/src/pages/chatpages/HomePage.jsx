@@ -6,8 +6,11 @@ import ChatRoom from "./ChatRoomPage";
 import ChatList from "../../components/chat/Sidebar/ChatList";
 import IncomingCallModal from "../video/IncomingCallModal";
 import ProfilePanel from "../../components/profile/ProfilePanel";
+import RoomCreationForm from "../../components/chat/Sidebar/RoomCreationForm";
+import RoomList from "../../components/chat/Sidebar/RoomList";
 import { WS_URL } from "../../config/api";
 import { LogOut, History, User as UserIcon, MessageSquare } from "lucide-react";
+import GroupChatRoom from "../../components/chat/GroupChatRoom";
 
 function HomePage() {
   const [user, setUser] = useState(null);
@@ -19,6 +22,8 @@ function HomePage() {
   const [incomingCall, setIncomingCall] = useState(null);
   const [showProfile, setShowProfile] = useState(false);
   const [refreshProfile, setRefreshProfile] = useState(0);
+  const [activeRoom, setActiveRoom] = useState(null);
+  const [toast, setToast] = useState(null);
 
   useEffect(() => { fetchUserProfile(); }, [refreshProfile]);
 
@@ -31,18 +36,34 @@ function HomePage() {
     } finally { setLoading(false); }
   };
 
+
   useEffect(() => {
     if (!user) return;
+    
     const token = localStorage.getItem("access");
     const notificationWs = new WebSocket(`${WS_URL}/ws/notifications/?token=${token}`);
+    
     notificationWs.onmessage = (event) => {
+     
       const data = JSON.parse(event.data);
+      
+    
       if (data.type === 'refresh_chat_list' || data.action === 'refresh') {
         window.dispatchEvent(new CustomEvent('refreshChatList'));
       }
-      if (data.type === 'incoming_call') setIncomingCall(data);
-      else if (data.type === 'call_cancelled' || data.type === 'call_ended') setIncomingCall(null);
+      
+      if (data.type === 'incoming_call') {
+        setIncomingCall(data);
+      } else if (data.type === 'call_cancelled' || data.type === 'call_ended') {
+        setIncomingCall(null);
+      }
+   
+      if (data.type === 'group_alert') {
+        setToast(data);
+        setTimeout(() => setToast(null), 5000); 
+      }
     };
+
     return () => notificationWs.close();
   }, [user]);
 
@@ -52,16 +73,32 @@ function HomePage() {
   };
 
   const handleSelectChat = (chatOrId, chatName) => {
-    if (typeof chatOrId === 'object') {
-      setActiveChat(chatOrId.id);
-      setActiveChatName(chatOrId.other_user.name);
-      setActiveChatUser(chatOrId.other_user);
-    } else {
-      setActiveChat(chatOrId);
-      setActiveChatName(chatName);
+      setActiveRoom(null); 
+      
+      if (typeof chatOrId === 'object') {
+        setActiveChat(chatOrId.id);
+        setActiveChatName(chatOrId.other_user.name);
+        setActiveChatUser(chatOrId.other_user);
+      } else {
+        setActiveChat(chatOrId);
+        setActiveChatName(chatName);
+        setActiveChatUser(null);
+      }
+    };
+
+    const handleSelectRoom = (room) => {
+      
+      setActiveChat(null);
+      setActiveChatName("");
       setActiveChatUser(null);
-    }
-  };
+
+      setActiveRoom(room);
+
+      if (room.is_video_room) {
+        const videoRoomSlug = room.name.replace(/\s+/g, '-').toLowerCase();
+        navigate(`/videocall/${videoRoomSlug}`);
+      }
+    };
 
   if (loading) return (
     <div className="h-screen bg-[#0a0a0a] flex items-center justify-center">
@@ -70,89 +107,121 @@ function HomePage() {
   );
 
   return (
-    <div className="flex h-screen bg-[#050505] text-white overflow-hidden font-sans">
-      
-      {showProfile && (
-        <ProfilePanel 
-          user={user} onClose={() => setShowProfile(false)} onLogout={handleLogout}
-          onProfileUpdated={(u) => { setUser(u); setRefreshProfile(p => p + 1); }}
-        />
-      )}
-
-      
-      <div className={`${activeChat ? "hidden md:flex" : "flex"} flex-col w-full md:w-[380px] bg-[#0f0f0f] border-r border-[#2a2a2a] z-30 shadow-2xl`}>
+      <div className="flex h-screen bg-[#050505] text-white overflow-hidden font-sans">
         
-       
-        <div className="p-6 bg-gradient-to-b from-[#161616] to-[#0f0f0f]">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3 cursor-pointer group" onClick={() => setShowProfile(true)}>
-              <div className="w-12 h-12 rounded-full border-2 border-[#d4af37] p-0.5 group-hover:rotate-12 transition-all duration-500">
-                <img 
-                  src={user.profile_image || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} 
-                  className="w-full h-full rounded-full object-cover" 
-                  alt="me" 
-                />
+        {showProfile && (
+          <ProfilePanel 
+            user={user} onClose={() => setShowProfile(false)} onLogout={handleLogout}
+            onProfileUpdated={(u) => { setUser(u); setRefreshProfile(p => p + 1); }}
+          />
+        )}
+
+        
+        <div className={`${(activeChat || activeRoom) ? "hidden md:flex" : "flex"} flex-col w-full md:w-[380px] bg-[#0f0f0f] border-r border-[#2a2a2a] z-30 shadow-2xl`}>
+          
+          <div className="p-6 bg-gradient-to-b from-[#161616] to-[#0f0f0f]">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3 cursor-pointer group" onClick={() => setShowProfile(true)}>
+                <div className="w-12 h-12 rounded-full border-2 border-[#d4af37] p-0.5 group-hover:rotate-12 transition-all duration-500">
+                  <img 
+                    src={user.profile_image || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} 
+                    className="w-full h-full rounded-full object-cover" 
+                    alt="me" 
+                  />
+                </div>
+                <div>
+                  <p className="text-xs text-[#d4af37] font-bold uppercase tracking-widest">Premium</p>
+                  <h3 className="font-bold text-white group-hover:text-[#d4af37] transition-colors">{user.name}</h3>
+                </div>
               </div>
-              <div>
-                <p className="text-xs text-[#d4af37] font-bold uppercase tracking-widest">Premium</p>
-                <h3 className="font-bold text-white group-hover:text-[#d4af37] transition-colors">{user.name}</h3>
+              
+              <div className="flex gap-1">
+                <button onClick={() => navigate('/call-history')} className="p-2 hover:bg-[#d4af37] hover:text-black rounded-lg transition-all text-[#d4af37]">
+                  <History size={18} />
+                </button>
+                <button onClick={handleLogout} className="p-2 hover:bg-red-500/20 hover:text-red-500 rounded-lg transition-all text-gray-500">
+                  <LogOut size={18} />
+                </button>
+              </div>
+            </div>
+
+            <Search onSelectChat={handleSelectChat} />
+            
+            <RoomCreationForm onRoomCreated={(newRoom) => {
+                window.dispatchEvent(new CustomEvent('refreshChatList'));
+            }} />
+
+          </div>
+
+          <div className="flex-1 overflow-y-auto custom-scrollbar">
+            <div className="px-6 py-2">
+              <h4 className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-bold mb-4">Direct Messages</h4>
+              <ChatList onSelectChat={handleSelectChat} />
+              
+              <RoomList onSelectRoom={handleSelectRoom} />
+            </div>
+          </div>
+        </div>
+
+        
+        <div className={`${(activeChat || activeRoom) ? "flex" : "hidden md:flex"} flex-1 flex-col relative`}>
+          {activeChat ? (
+            
+            <ChatRoom chatId={activeChat} chatName={activeChatName} currentUser={user} otherUser={activeChatUser} />
+            
+          ) : activeRoom && !activeRoom.is_video_room ? (
+            
+           
+            <GroupChatRoom room={activeRoom} currentUser={user} />
+
+          ) : (
+            
+            <div className="flex-1 flex flex-col items-center justify-center bg-[#0a0a0a] text-center p-10">
+              <div className="w-24 h-24 bg-[#161616] border border-[#d4af37]/30 rounded-3xl flex items-center justify-center mb-8 rotate-12 shadow-[0_0_30px_rgba(212,175,55,0.1)]">
+                <MessageSquare size={48} className="text-[#d4af37] -rotate-12" />
+              </div>
+              <h2 className="text-3xl font-black text-white mb-4">House of <span className="text-[#d4af37]">Anbu</span></h2>
+              <p className="text-gray-500 max-w-sm text-sm leading-relaxed">Select a conversation or room from the sidebar to start messaging.</p>
+              
+              <div className="mt-12 grid grid-cols-3 gap-8 opacity-40">
+                  <div className="flex flex-col items-center gap-2"><div className="w-1 h-1 bg-[#d4af37] rounded-full"></div><span className="text-[10px] uppercase tracking-widest">Secure</span></div>
+                  <div className="flex flex-col items-center gap-2"><div className="w-1 h-1 bg-[#d4af37] rounded-full"></div><span className="text-[10px] uppercase tracking-widest">Fast</span></div>
+                  <div className="flex flex-col items-center gap-2"><div className="w-1 h-1 bg-[#d4af37] rounded-full"></div><span className="text-[10px] uppercase tracking-widest">Private</span></div>
               </div>
             </div>
             
-            <div className="flex gap-1">
-              <button onClick={() => navigate('/call-history')} className="p-2 hover:bg-[#d4af37] hover:text-black rounded-lg transition-all text-[#d4af37]">
-                <History size={18} />
-              </button>
-              <button onClick={handleLogout} className="p-2 hover:bg-red-500/20 hover:text-red-500 rounded-lg transition-all text-gray-500">
-                <LogOut size={18} />
-              </button>
-            </div>
-          </div>
-
-          <Search onSelectChat={handleSelectChat} />
+          )}
         </div>
 
-        <div className="flex-1 overflow-y-auto custom-scrollbar">
-          <div className="px-6 py-2">
-            <h4 className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-bold mb-4">Direct Messages</h4>
-            <ChatList onSelectChat={handleSelectChat} />
-          </div>
-        </div>
-      </div>
+        {incomingCall && (
+          <IncomingCallModal callData={incomingCall} onReject={() => setIncomingCall(null)} onCallEnded={() => setIncomingCall(null)} />
+        )}
 
       
-      <div className={`${activeChat ? "flex" : "hidden md:flex"} flex-1 flex-col relative`}>
-        {activeChat ? (
-          <ChatRoom chatId={activeChat} chatName={activeChatName} currentUser={user} otherUser={activeChatUser} />
-        ) : (
-          <div className="flex-1 flex flex-col items-center justify-center bg-[#0a0a0a] text-center p-10">
-            <div className="w-24 h-24 bg-[#161616] border border-[#d4af37]/30 rounded-3xl flex items-center justify-center mb-8 rotate-12 shadow-[0_0_30px_rgba(212,175,55,0.1)]">
-              <MessageSquare size={48} className="text-[#d4af37] -rotate-12" />
+        {toast && (
+          <div 
+            className="fixed top-6 right-6 bg-[#161616] border border-[#d4af37]/50 p-4 rounded-2xl shadow-[0_0_30px_rgba(212,175,55,0.2)] z-[200] animate-in slide-in-from-top-4 fade-in flex items-start gap-4 min-w-[280px] max-w-sm cursor-pointer" 
+            onClick={() => setToast(null)}
+          >
+            <div className="bg-[#d4af37]/20 text-[#d4af37] p-2.5 rounded-full mt-1">
+              <MessageSquare size={20} />
             </div>
-            <h2 className="text-3xl font-black text-white mb-4">House of <span className="text-[#d4af37]">Anbu</span></h2>
-            <p className="text-gray-500 max-w-sm text-sm leading-relaxed">Select a conversation from the sidebar to start messaging with end-to-end encryption style security.</p>
-            
-            <div className="mt-12 grid grid-cols-3 gap-8 opacity-40">
-                <div className="flex flex-col items-center gap-2"><div className="w-1 h-1 bg-[#d4af37] rounded-full"></div><span className="text-[10px] uppercase tracking-widest">Secure</span></div>
-                <div className="flex flex-col items-center gap-2"><div className="w-1 h-1 bg-[#d4af37] rounded-full"></div><span className="text-[10px] uppercase tracking-widest">Fast</span></div>
-                <div className="flex flex-col items-center gap-2"><div className="w-1 h-1 bg-[#d4af37] rounded-full"></div><span className="text-[10px] uppercase tracking-widest">Private</span></div>
+            <div className="flex-1 overflow-hidden">
+              <h4 className="text-[#d4af37] font-black text-sm uppercase tracking-wide truncate">{toast.room_name}</h4>
+              <p className="text-white text-xs font-bold mt-1 truncate">{toast.sender}</p>
+              <p className="text-gray-400 text-xs mt-0.5 line-clamp-2">{toast.message}</p>
             </div>
           </div>
         )}
+
+        <style>{`
+          .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+          .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+          .custom-scrollbar::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 10px; }
+          .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #d4af37; }
+        `}</style>
       </div>
-
-      {incomingCall && (
-        <IncomingCallModal callData={incomingCall} onReject={() => setIncomingCall(null)} onCallEnded={() => setIncomingCall(null)} />
-      )}
-
-      <style jsx>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #d4af37; }
-      `}</style>
-    </div>
-  );
+    );
 }
 
 export default HomePage;

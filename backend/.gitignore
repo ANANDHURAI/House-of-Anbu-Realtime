@@ -12,7 +12,7 @@ frontend/.env
 # Media & static files
 /media/
 staticfiles/
-static/
+
 
 # Build and virtual environment
 venv/

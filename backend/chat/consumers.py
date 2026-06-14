@@ -1,7 +1,7 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
-from .models import Chat, Message
+from .models import Chat, Message , RoomMessage , Room
 from django.utils import timezone
 
 class NotificationConsumer(AsyncWebsocketConsumer):
@@ -52,6 +52,19 @@ class NotificationConsumer(AsyncWebsocketConsumer):
             'action': event['action'],
             'type': 'refresh_chat_list'
         }))
+        
+    async def group_message_alert(self, event):
+        """Sends a visual pop-up alert data to the frontend"""
+        await self.send(text_data=json.dumps({
+            'type': 'group_alert',
+            'room_name': event['room_name'],
+            'sender': event['sender'],
+            'message': event['message']
+        }))
+        
+        
+        
+        
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -120,3 +133,95 @@ class ChatConsumer(AsyncWebsocketConsumer):
         chat.updated_at = timezone.now()
         chat.save(update_fields=['updated_at'])
         return msg, chat.user1_id, chat.user2_id
+    
+    
+
+
+
+
+class RoomChatConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.room_id = self.scope['url_route']['kwargs']['room_id']
+        self.room_group_name = f'room_{self.room_id}'
+        
+        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
+        await self.accept()
+
+
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
+
+
+    async def receive(self, text_data):
+        try:
+            user = self.scope.get("user")
+            if not user or user.is_anonymous:
+                await self.close()
+                return
+
+            data = json.loads(text_data)
+            message_content = data.get('message', '').strip()
+            
+            if not message_content:
+                return
+
+            new_msg, participant_ids, room_name = await self.save_room_message(self.room_id, user, message_content)
+
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'chat_message',
+                    'content': new_msg.content,
+                    'sender_name': user.name,
+                    'sender_id': user.id,
+                    'timestamp': new_msg.timestamp.isoformat()
+                }
+            )
+
+           
+            for user_id in participant_ids:
+              
+                await self.channel_layer.group_send(
+                    f'notifications_{user_id}',
+                    {'type': 'refresh_chat_list', 'action': 'refresh'}
+                )
+                
+               
+                if str(user_id) != str(user.id):
+                    await self.channel_layer.group_send(
+                        f'notifications_{user_id}',
+                        {
+                            'type': 'group_message_alert',
+                            'room_name': room_name,
+                            'sender': user.name,
+                            'message': new_msg.content
+                        }
+                    )
+
+        except Exception as e:
+            print(f"Error in Room receive: {str(e)}")
+            await self.send(text_data=json.dumps({'error': str(e)}))
+
+
+    
+
+    async def chat_message(self, event):
+        await self.send(text_data=json.dumps({
+            'content': event['content'],
+            'sender_name': event['sender_name'],
+            'sender_id': event.get('sender_id'),
+            'timestamp': event['timestamp']
+        }))
+
+    @database_sync_to_async
+    def save_room_message(self, room_id, sender, message_content):
+        room = Room.objects.get(id=room_id)
+        msg = RoomMessage.objects.create(room=room, sender=sender, content=message_content)
+        participant_ids = list(room.participants.values_list('id', flat=True))
+        
+        return msg, participant_ids, room.name
+    
+
+
+
+    

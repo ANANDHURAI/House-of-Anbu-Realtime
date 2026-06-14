@@ -193,3 +193,5 @@ class UserProfileUpdateAPIView(APIView):
                 "profile_image": profile_image_url
             }
         }, status=status.HTTP_200_OK)
+        
+        

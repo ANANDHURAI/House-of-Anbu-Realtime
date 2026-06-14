@@ -128,15 +128,10 @@ function ChatRoomPage({ chatId, chatName, currentUser, otherUser }) {
           
           if (msg.message_type === 'call' || msg.message_type === 'call_missed') {
             const isMissed = msg.message_type === 'call_missed';
-
-            // Determine if current user was the CALLER.
-            // msg.call_caller_id is the caller's id sent from the serializer/websocket.
-            // Fall back to checking otherUser: if otherUser is the caller, current user is the receiver.
             const iAmTheCaller =
               msg.call_caller_id !== undefined
                 ? msg.call_caller_id === currentUserId
-                : isCurrentUser; // fallback: sender of the message = the one who triggered (caller for cancelled, receiver for rejected)
-                                 // For a cleaner fallback, treat the message sender as caller only for non-missed calls.
+                : isCurrentUser; 
 
             const callLabel = iAmTheCaller
               ? "You started the call"

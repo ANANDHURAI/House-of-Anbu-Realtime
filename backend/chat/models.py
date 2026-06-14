@@ -16,6 +16,7 @@ class Chat(models.Model):
         return f"Chat between {self.user1.name} and {self.user2.name}"
 
 
+
 class Message(models.Model):
     chat = models.ForeignKey(Chat, on_delete=models.CASCADE, related_name='messages')
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
@@ -44,3 +45,25 @@ class Message(models.Model):
 
     def __str__(self):
         return f"{self.sender.name}: {self.content[:30] if self.content else 'Media message'}"
+
+
+
+class Room(models.Model):
+    name = models.CharField(max_length=255, unique=True)
+    is_video_room = models.BooleanField(default=False, help_text="True for video rooms, False for text chat rooms") 
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_rooms')
+    participants = models.ManyToManyField(User, related_name='joined_rooms', blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name} ({'Video' if self.is_video_room else 'Chat'})"
+  
+    
+class RoomMessage(models.Model):
+    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='messages')
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_room_messages')
+    content = models.TextField(blank=True, null=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.sender.name} in {self.room.name}: {self.content[:30]}"

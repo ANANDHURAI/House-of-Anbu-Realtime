@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import Chat, Message
 from django.contrib.auth import get_user_model
+from .models import Room , RoomMessage
 
 User = get_user_model()
 
@@ -11,7 +12,6 @@ class MessageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Message
-        # Make sure 'message_type' is included in fields!
         fields = ['id', 'sender_id', 'sender_name', 'content', 'timestamp', 'is_read', 'message_type']
 
     def get_content(self, obj):
@@ -55,6 +55,8 @@ class UserMiniSerializer(serializers.ModelSerializer):
             return obj.profile_image.url
         return None
         
+        
+        
 class ChatSerializer(serializers.ModelSerializer):
     other_user = serializers.SerializerMethodField()
     last_message = serializers.SerializerMethodField()
@@ -90,3 +92,22 @@ class ChatSerializer(serializers.ModelSerializer):
     
 
     
+
+
+class RoomSerializer(serializers.ModelSerializer):
+    # This automatically grabs the 'name' field from the related User model
+    created_by = serializers.CharField(source='created_by.name', read_only=True)
+
+    class Meta:
+        model = Room
+        fields = ['id', 'name', 'is_video_room', 'created_by', 'created_at']
+        
+
+
+class RoomMessageSerializer(serializers.ModelSerializer):
+    sender_name = serializers.CharField(source='sender.name', read_only=True)
+    sender_id = serializers.IntegerField(source='sender.id', read_only=True)
+
+    class Meta:
+        model = RoomMessage
+        fields = ['id', 'sender_id', 'sender_name', 'content', 'timestamp']
