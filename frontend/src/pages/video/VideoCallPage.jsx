@@ -55,6 +55,18 @@ function VideoCallPage() {
   }, []);
 
   useEffect(() => {
+    if (connected || !callId) return;
+    const timer = setTimeout(async () => {
+      try {
+        await AxiosInstance.post(`/videocall/call/${callId}/update/`, { status: 'missed' });
+      } catch (e) { console.error(e); }
+      navigate('/home', { replace: true });
+    }, 35000);
+    return () => clearTimeout(timer);
+  }, [connected, callId, navigate]);
+
+
+  useEffect(() => {
     let interval;
     if (connected) {
       interval = setInterval(() => {
@@ -74,13 +86,8 @@ function VideoCallPage() {
       
       notificationWs.onmessage = (event) => {
         const data = JSON.parse(event.data);
-        console.log("Call notification in VideoCallPage:", data);
-        
         if (data.type === 'call_ended' && data.call_id === parseInt(storedCallId)) {
-          if (data.message) {
-            alert(data.message);
-            endCall();
-          }
+          endCall();
         }
       };
       

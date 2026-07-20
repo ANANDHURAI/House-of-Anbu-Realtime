@@ -76,108 +76,65 @@ class StartCallView(APIView):
 
 class UpdateCallStatusView(APIView):
     permission_classes = [IsAuthenticated]
+    TERMINAL_STATUSES = {'ended', 'rejected', 'cancelled', 'missed'}
 
     def post(self, request, call_id):
         from django.utils import timezone
-        
-        call = Call.objects.get(id=call_id)
-        status = request.data.get('status')
-        
-        call.status = status
-        
-        if status == 'ended':
+
+        try:
+            call = Call.objects.select_related('caller', 'receiver', 'chat').get(id=call_id)
+        except Call.DoesNotExist:
+            return Response({"error": "Call not found"}, status=404)
+
+        if request.user not in (call.caller, call.receiver):
+            return Response({"error": "Not authorized"}, status=403)
+
+       
+        if call.status in self.TERMINAL_STATUSES:
+            return Response(CallSerializer(call, context={'request': request}).data)
+
+        new_status = request.data.get('status')
+        valid = dict(Call.CALL_STATUS)
+        if new_status not in valid:
+            return Response({"error": "Invalid status"}, status=400)
+
+        call.status = new_status
+
+        if new_status == 'ended':
             call.ended_at = timezone.now()
             if call.started_at:
-                duration = (call.ended_at - call.started_at).total_seconds()
-                call.duration = int(duration)
-        
-        if status == 'rejected':
+                call.duration = int((call.ended_at - call.started_at).total_seconds())
+
+        if new_status in ('rejected', 'cancelled', 'missed'):
             call.is_missed = True
-        
-        if status == 'cancelled':
-            call.is_missed = True
-            
+            call.ended_at = timezone.now()
+
         call.save()
-        
-        if status in ['ended', 'rejected', 'cancelled']:
-            other_user = call.receiver if call.caller == request.user else call.caller
-            channel_layer = get_channel_layer()
-            receiver_group = f'notifications_{other_user.id}'
-            
-            message = None
-            notification_type = 'call_ended'
-            
-            if status == 'cancelled' and call.caller == request.user:
-                
-                notification_type = 'call_cancelled'
-                message = None
-                print(f"Sending call_cancelled notification to user {other_user.id}")
-            elif status == 'rejected' and call.receiver == request.user:
-              
-                message = f"{request.user.name} rejected your call"
-                print(f"Sending call rejection notification to user {other_user.id}")
-            
+
+        channel_layer = get_channel_layer()
+        other_user = call.receiver if call.caller == request.user else call.caller
+
+        if new_status in self.TERMINAL_STATUSES:
             async_to_sync(channel_layer.group_send)(
-                receiver_group,
-                {
-                    'type': notification_type,
-                    'data': {
-                        'type': notification_type,
-                        'call_id': call.id,
-                        'status': status,
-                        'message': message
-                    }
-                }
+                f'notifications_{other_user.id}',
+                {'type': 'call_ended', 'data': {'type': 'call_ended', 'call_id': call.id, 'status': new_status}}
             )
 
-
-        if call.chat:
-            message_type = 'call_missed' if call.is_missed else 'call'
-            should_create_message = False
-            
-            if status == 'rejected' and call.receiver == request.user:
-                # Receiver rejected → create message once
-                should_create_message = True
-            elif status == 'cancelled' and call.caller == request.user:
-                # Caller cancelled → create message once  
-                should_create_message = True
-            elif status == 'ended':
-                # Call ended normally → create message once
-                should_create_message = True
-
-            if should_create_message:
+            if call.chat:
+                message_type = 'call_missed' if call.is_missed else 'call'
                 Message.objects.create(
-                    chat=call.chat,
-                    sender=request.user,
-                    content="",
-                    message_type=message_type,
-                    call=call,
-                    is_read=False if call.is_missed else True
+                    chat=call.chat, sender=call.caller, content="",
+                    message_type=message_type, call=call,
+                    is_read=not call.is_missed,
                 )
-        
-        return Response(CallSerializer(call).data)
-    
+                for uid in (call.caller_id, call.receiver_id):
+                    async_to_sync(channel_layer.group_send)(
+                        f'notifications_{uid}', {'type': 'refresh_chat_list', 'action': 'refresh'}
+                    )
 
-    def _get_call_message(self, call, current_user):
-        if call.is_missed or call.status == 'cancelled':
-            if call.status == 'cancelled' and call.caller == current_user:
-            
-                return None
-            elif call.status == 'cancelled' and call.receiver == current_user:
-                return f"Missed call from {call.caller.name}"
-            elif call.status == 'rejected' and call.caller == current_user:
-                return f"Call rejected by {call.receiver.name}"
-            elif call.receiver == current_user:
-                return f"Missed call from {call.caller.name}"
-            else:
-                return f"Missed call to {call.receiver.name}"
-        else:
-            duration_str = f"{call.duration // 60}:{call.duration % 60:02d}" if call.duration else "0:00"
-            if call.caller == current_user:
-                return f"Outgoing call • {duration_str}"
-            else:
-                return f"Incoming call • {duration_str}"
-            
+        return Response(CallSerializer(call, context={'request': request}).data)
+
+
 
 class CallHistoryView(APIView):
     permission_classes = [IsAuthenticated]

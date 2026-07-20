@@ -64,9 +64,10 @@ function ChatRoomPage({ chatId, chatName, currentUser, otherUser }) {
     window.dispatchEvent(new CustomEvent('refreshChatList'));
   };
 
-  const startVideoCall = async () => {
+
+  const startVideoCall = async (receiverIdOverride) => {
     try {
-      let receiverId = otherUser?.id;
+      let receiverId = receiverIdOverride || otherUser?.id;
       if (!receiverId) {
         const chatDetailRes = await AxiosInstance.get(`/chat/chat-details/${chatId}/`);
         receiverId = chatDetailRes.data.other_user.id;
@@ -79,6 +80,8 @@ function ChatRoomPage({ chatId, chatName, currentUser, otherUser }) {
       alert("Failed to start video call.");
     }
   };
+
+  const callBack = (userId) => startVideoCall(userId);
 
   if (loading) {
     return (
@@ -111,7 +114,7 @@ function ChatRoomPage({ chatId, chatName, currentUser, otherUser }) {
           </div>
 
           <div className="flex items-center gap-2">
-            <button onClick={startVideoCall} className="p-3 rounded-full bg-[#1e1e1e] hover:bg-[#d4af37] hover:text-black text-[#d4af37] transition-all duration-300 border border-[#2a2a2a]">
+            <button onClick={() => startVideoCall()} className="p-3 rounded-full bg-[#1e1e1e] hover:bg-[#d4af37] hover:text-black text-[#d4af37] transition-all duration-300 border border-[#2a2a2a]">
               <Video size={20} />
             </button>
             <button className="p-3 rounded-full bg-[#1e1e1e] hover:bg-[#2a2a2a] text-gray-400 border border-[#2a2a2a]">
@@ -127,43 +130,27 @@ function ChatRoomPage({ chatId, chatName, currentUser, otherUser }) {
           const isCurrentUser = msg.sender === currentUserName || msg.sender_name === currentUserName || msg.sender_id === currentUserId;
           
           if (msg.message_type === 'call' || msg.message_type === 'call_missed') {
-            const isMissed = msg.message_type === 'call_missed';
-            const iAmTheCaller =
-              msg.call_caller_id !== undefined
-                ? msg.call_caller_id === currentUserId
-                : isCurrentUser; 
-
-            const callLabel = iAmTheCaller
-              ? "You started the call"
-              : `${chatName || otherUser?.name || "User"} called you`;
-
+            const isMissed = msg.call_is_missed;
             return (
               <div key={idx} className="flex justify-center my-6 animate-in zoom-in-95 duration-300">
-                <div className={`flex flex-col items-center gap-3 px-8 py-5 rounded-3xl border bg-[#161616] shadow-2xl min-w-[240px] ${
-                  isMissed ? "border-red-500/20" : "border-[#d4af37]/20"
-                }`}>
+                <div className={`flex flex-col items-center gap-3 px-8 py-5 rounded-3xl border bg-[#161616] shadow-2xl min-w-[240px] ${isMissed ? "border-red-500/20" : "border-[#d4af37]/20"}`}>
                   <div className={`p-4 rounded-full ${isMissed ? "bg-red-500/10 text-red-500" : "bg-[#d4af37]/10 text-[#d4af37]"}`}>
-                    {isMissed ? <PhoneMissed size={28} /> : <Video size={28} className={!iAmTheCaller ? "animate-pulse" : ""} />}
+                    {isMissed ? <PhoneMissed size={28} /> : <Video size={28} />}
                   </div>
-                  
                   <div className="text-center">
                     <h4 className={`text-sm font-bold uppercase tracking-widest ${isMissed ? "text-red-500" : "text-[#d4af37]"}`}>
-                      {isMissed ? "Missed Call" : "Video Call"}
+                      {msg.call_title}
                     </h4>
-                    <p className="text-xs text-gray-400 mt-1">
-                      {callLabel}
-                    </p>
+                    <p className="text-xs text-gray-400 mt-1">{msg.call_subtext}</p>
                   </div>
-
-                  {isMissed && !iAmTheCaller && (
-                    <button 
-                      onClick={startVideoCall}
+                  {msg.can_call_back && (
+                    <button
+                      onClick={() => callBack(msg.call_other_user_id)}
                       className="mt-2 px-6 py-2 bg-red-500 hover:bg-red-600 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-red-500/20"
                     >
                       Call Back
                     </button>
                   )}
-
                   <span className="text-[9px] text-gray-600 font-bold mt-2">
                     {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>

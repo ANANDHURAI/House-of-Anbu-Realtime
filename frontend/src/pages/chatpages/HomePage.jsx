@@ -130,7 +130,6 @@ function HomePage() {
                   />
                 </div>
                 <div>
-                  <p className="text-xs text-[#d4af37] font-bold uppercase tracking-widest">Premium</p>
                   <h3 className="font-bold text-white group-hover:text-[#d4af37] transition-colors">{user.name}</h3>
                 </div>
               </div>

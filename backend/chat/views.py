@@ -67,7 +67,7 @@ class ChatMessagesView(APIView):
 
     def get(self, request, chat_id):
         messages = Message.objects.filter(chat_id=chat_id).order_by("timestamp")
-        serializer = MessageSerializer(messages, many=True)
+        serializer = MessageSerializer(messages, many=True, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 

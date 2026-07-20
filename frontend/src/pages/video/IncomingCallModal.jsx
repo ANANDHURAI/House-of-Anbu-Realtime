@@ -70,6 +70,23 @@ function IncomingCallModal({ callData, onReject, onCallEnded }) {
     }
   };
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!hasActionedRef.current) handleTimeout();
+    }, 30000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleTimeout = async () => {
+    if (hasActionedRef.current) return;
+    hasActionedRef.current = true;
+    setIsRinging(false);
+    try {
+      await AxiosInstance.post(`/videocall/call/${callData.call_id}/update/`, { status: 'missed' });
+    } catch (e) { console.error(e); }
+    onReject();
+  };
+
   if (!isRinging) return null;
 
   return (
