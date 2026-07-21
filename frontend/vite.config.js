@@ -3,17 +3,14 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 
+
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  
-  // Ensure public files are copied
   publicDir: 'public',
-  
   build: {
     outDir: 'dist',
-    copyPublicDir: true, // Copies _redirects to dist
+    copyPublicDir: true,
   },
-  
   resolve: {
     alias: {
       stream: 'readable-stream',
@@ -23,13 +20,16 @@ export default defineConfig({
       events: 'events',
     },
   },
-  
   optimizeDeps: {
     include: ['simple-peer', 'buffer', 'process/browser', 'readable-stream', 'events'],
   },
-  
   define: {
     global: 'globalThis',
     'process.env': {},
+  },
+  test: {
+    environment: "jsdom",
+    globals: true,
+    setupFiles: "./src/setupTests.js",
   },
 })
