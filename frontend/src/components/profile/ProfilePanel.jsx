@@ -31,7 +31,7 @@ function ProfilePanel({ user, onClose, onLogout, onProfileUpdated }) {
         formData.append("profile_image", image);
       }
 
-      const response = await AxiosInstance.put("/auth/profile/update/", formData);
+      const response = await AxiosInstance.patch("/auth/profile/update/",formData);
       showToast("Profile updated successfully!", "success");
 
       const profileResponse = await AxiosInstance.get("/auth/profile/");

@@ -159,39 +159,46 @@ class UserProfileAPIView(APIView):
         }, status=status.HTTP_200_OK)
 
 
-
 class UserProfileUpdateAPIView(APIView):
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
 
-    def put(self, request):
+    def patch(self, request):
         user = request.user
+
         name = request.data.get("name")
         about_me = request.data.get("about_me")
-        profile_image = request.FILES.get("profile_image") 
+        profile_image = request.FILES.get("profile_image")
 
-        if name:
+        if name is not None:
             user.name = name
-        if about_me:
+
+        if about_me is not None:
             user.about_me = about_me
+
         if profile_image:
             user.profile_image = profile_image
 
         user.save()
-        
+
         profile_image_url = None
+
         if user.profile_image:
-            profile_image_url = request.build_absolute_uri(user.profile_image.url)
-        
-        return Response({
-            "message": "Profile updated successfully",
-            "user": {
-                "email": user.email,
-                "name": user.name,
-                "phone": user.phone,
-                "about_me": user.about_me,
-                "profile_image": profile_image_url
-            }
-        }, status=status.HTTP_200_OK)
-        
+            profile_image_url = request.build_absolute_uri(
+                user.profile_image.url
+            )
+
+        return Response(
+            {
+                "message": "Profile updated successfully",
+                "user": {
+                    "email": user.email,
+                    "name": user.name,
+                    "phone": user.phone,
+                    "about_me": user.about_me,
+                    "profile_image": profile_image_url,
+                },
+            },
+            status=status.HTTP_200_OK,
+        )       
         
