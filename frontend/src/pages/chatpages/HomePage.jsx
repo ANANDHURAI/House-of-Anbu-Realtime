@@ -71,6 +71,12 @@ function HomePage() {
     localStorage.clear();
     navigate("/login");
   };
+  const handleBack = () => {
+    setActiveChat(null);
+    setActiveChatName("");
+    setActiveChatUser(null);
+    setActiveRoom(null);
+  };
 
   const handleSelectChat = (chatOrId, chatName) => {
       setActiveRoom(null); 
@@ -165,13 +171,15 @@ function HomePage() {
         
         <div className={`${(activeChat || activeRoom) ? "flex" : "hidden md:flex"} flex-1 flex-col relative`}>
           {activeChat ? (
-            
-            <ChatRoom chatId={activeChat} chatName={activeChatName} currentUser={user} otherUser={activeChatUser} />
-            
+            <ChatRoom
+              chatId={activeChat}
+              chatName={activeChatName}
+              currentUser={user}
+              otherUser={activeChatUser}
+              onBack={handleBack}
+            />
           ) : activeRoom && !activeRoom.is_video_room ? (
-            
-           
-            <GroupChatRoom room={activeRoom} currentUser={user} />
+            <GroupChatRoom room={activeRoom} currentUser={user} onBack={handleBack} />
 
           ) : (
             

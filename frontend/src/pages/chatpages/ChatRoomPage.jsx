@@ -2,9 +2,9 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import AxiosInstance from "../../api/AxiosInterCepters";
 import { WS_URL } from "../../config/api";
-import { Phone, Video, Send, MoreVertical, Shield, PhoneMissed, VideoOff } from "lucide-react";
+import { Phone, Video, Send, MoreVertical, Shield, PhoneMissed, VideoOff, ArrowLeft } from "lucide-react";
 
-function ChatRoomPage({ chatId, chatName, currentUser, otherUser }) {
+function ChatRoomPage({ chatId, chatName, currentUser, otherUser, onBack }) {
   const navigate = useNavigate();
   const [socket, setSocket] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -97,6 +97,12 @@ function ChatRoomPage({ chatId, chatName, currentUser, otherUser }) {
       <div className="bg-[#161616] border-b border-[#2a2a2a] px-6 py-4 shadow-xl z-10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
+            <button
+              onClick={onBack}
+              className="md:hidden p-2 -ml-2 rounded-full hover:bg-[#1e1e1e] text-[#d4af37] transition-colors"
+            >
+              <ArrowLeft size={22} />
+            </button>
             <div className="relative">
               {otherUser?.profile_image ? (
                 <img src={otherUser.profile_image} className="w-12 h-12 rounded-full object-cover border-2 border-[#d4af37]/50" alt="User" />
