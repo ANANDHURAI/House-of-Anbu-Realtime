@@ -1,8 +1,10 @@
 import { useState } from "react"
 import AxiosInstance from "../../api/AxiosInterCepters"
+import { useNavigate } from "react-router-dom"
 import { Mail, ShieldCheck, ArrowRight, Loader2, CheckCircle2 } from "lucide-react"
 
 function LoginPage() {
+  const navigate = useNavigate()
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
@@ -52,7 +54,7 @@ function LoginPage() {
         localStorage.setItem("access", res.data.access)
         localStorage.setItem("refresh", res.data.refresh)
         localStorage.setItem("user", JSON.stringify(res.data.user))
-        window.location.href = "/home"
+        navigate("/welcome")
       }
     } catch (error) {
       setError("Invalid OTP. Please try again.")
@@ -61,7 +63,7 @@ function LoginPage() {
       setLoading(false)
     }
   }
-
+  
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#0a0f1d] relative overflow-hidden font-sans">
       {/* Background Glows */}
