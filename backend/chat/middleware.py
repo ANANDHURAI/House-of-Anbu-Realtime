@@ -23,13 +23,27 @@ class TokenAuthMiddleware:
 
     async def __call__(self, scope, receive, send):
         close_old_connections()
+
         query_string = parse_qs(scope["query_string"].decode())
         token = query_string.get("token")
 
-        if token:
-            user = await get_user(token[0])
-            if user:
-                scope["user"] = user
+        if not token:
+            await send({
+                "type": "websocket.close",
+                "code": 4001,
+            })
+            return
+
+        user = await get_user(token[0])
+
+        if not user:
+            await send({
+                "type": "websocket.close",
+                "code": 4003,
+            })
+            return
+
+        scope["user"] = user
 
         return await self.inner(scope, receive, send)
 
