@@ -19,8 +19,7 @@ export default function RoomCreationForm({ onRoomCreated }) {
         
         try {
             const res = await AxiosInstance.post('/chat/create-room/', { 
-                name: roomName,
-                is_video_room: false 
+                name: roomName
             });
             setRoomName('');
             if (onRoomCreated) onRoomCreated(res.data);

@@ -138,27 +138,31 @@ class CreateRoomView(APIView):
 
     def post(self, request):
         room_name = request.data.get('name', '').strip()
-        is_video = request.data.get('is_video_room', False)
-        
+
         if not room_name:
-            return Response({"error": "Room name is required"}, status=status.HTTP_400_BAD_REQUEST)
-        
+            return Response(
+                {"error": "Room name is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         room, created = Room.objects.get_or_create(
-            name=room_name, 
-            defaults={'created_by': request.user, 'is_video_room': is_video}
+            name=room_name,
+            defaults={'created_by': request.user}
         )
-        
+
         if created:
             room.participants.add(request.user)
+
             return Response({
-                "message": "Room created!", 
-                "room_id": room.id, 
+                "message": "Room created!",
+                "room_id": room.id,
                 "name": room.name,
-                "is_video_room": room.is_video_room
             }, status=status.HTTP_201_CREATED)
-        else:
-            return Response({"error": "Room already exists"}, status=status.HTTP_400_BAD_REQUEST)
-        
+
+        return Response(
+            {"error": "Room already exists"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
         
 
 
